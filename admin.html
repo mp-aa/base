@@ -5,589 +5,322 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MBSTU Physics Alumni - Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .tab-active { border-color: #6366F1; color: #6366F1; }
-        .modal { transition: opacity 0.3s ease; }
-        .toast { animation: slide-in 0.5s forwards, slide-out 0.5s 2.5s forwards; }
-        @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        @keyframes slide-out { from { transform: translateX(0); } to { transform: translateX(110%); } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <!-- Header (Consistent with other pages) -->
+    <!-- Header -->
     <div class="bg-white shadow-md">
         <div class="header text-center py-6 bg-gradient-to-r from-blue-700 via-indigo-800 to-purple-900 text-white">
             <div class="main-title text-4xl sm:text-5xl font-extrabold tracking-tight">MBSTU PHYSICS ALUMNI ASSOCIATION</div>
             <div class="university-name text-lg sm:text-xl font-semibold mt-1">MAWLANA BHASHANI SCIENCE AND TECHNOLOGY UNIVERSITY</div>
         </div>
-        <nav class="nav bg-white shadow-sm">
-            <div class="nav-container max-w-7xl mx-auto flex justify-center items-center space-x-2 sm:space-x-4 p-4 overflow-x-auto whitespace-nowrap">
-            <a href="index.html" class="nav-tab text-purple-600 font-bold border-b-2 border-purple-600 px-3 py-2 rounded-md text-sm sm:text-base">Home</a>
-            <a href="membership-form.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Become a Member</a>
-            <a href="members.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Current Members</a>
-            <a href="committee.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Committee</a>
-            <a href="alumni-news.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Alumni News</a>
-            <a href="activities.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Activities</a>
-            <a href="upcoming-events.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Upcoming Events</a>
-            <a href="admin.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Admin</a>
-            </div>
-        </nav>
-    </div>
-    
-    <!-- Login Container -->
-    <div id="login-container" class="max-w-md mx-auto mt-16 p-8 bg-white shadow-lg rounded-lg">
-        <h2 class="text-2xl font-bold text-center text-purple-800 mb-6">Admin Verification</h2>
-        <div id="email-step">
-            <p class="text-center text-gray-600 mb-4">Please enter the admin email address to receive a verification code.</p>
-            <form id="email-form">
-                <label for="admin-email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                <input type="email" id="admin-email" value="mbstu.phy.alm@gmail.com" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
-                <button type="submit" id="send-code-btn" class="mt-6 w-full py-2 px-4 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700">Send Code</button>
-            </form>
-        </div>
-        <div id="code-step" class="hidden">
-            <p class="text-center text-gray-600 mb-4">A 6-digit code has been sent to your email. Please enter it below.</p>
-            <form id="code-form">
-                <label for="verification-code" class="block text-sm font-medium text-gray-700">Verification Code</label>
-                <input type="text" id="verification-code" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required maxlength="6" autocomplete="off">
-                <button type="submit" id="verify-code-btn" class="mt-6 w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">Verify & Enter</button>
-            </form>
-        </div>
-        <p id="login-message" class="text-center text-red-500 mt-4"></p>
     </div>
 
-    <!-- Admin Panel (Initially Hidden) -->
-    <div id="dashboard-container" class="hidden max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <h1 class="text-3xl font-bold text-purple-800 mb-6 flex justify-between items-center">
-            <span>Admin Dashboard</span>
-            <button id="logout-btn" class="text-sm font-medium text-red-500 hover:underline">Logout</button>
-        </h1>
-        <div class="mb-6 border-b border-gray-200">
-            <nav class="flex flex-wrap -mb-px" aria-label="Tabs">
-                 <button id="tab-approveMembers" class="tab-btn tab-active whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm">Approve Members</button>
-                <button id="tab-manageMembers" class="tab-btn whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm ml-8 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Manage Members</button>
-                <button id="tab-manageCommittee" class="tab-btn whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm ml-8 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Manage Committee</button>
-                <button id="tab-news" class="tab-btn whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm ml-8 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Alumni News</button>
-                <button id="tab-activities" class="tab-btn whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm ml-8 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Activities</button>
-                <button id="tab-events" class="tab-btn whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm ml-8 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Upcoming Events</button>
-            </nav>
+    <!-- Admin Panel -->
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <h1 class="text-3xl font-bold text-purple-800 mb-6">Admin Dashboard</h1>
+        
+        <!-- Configuration Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Google Sheets Configuration</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Google Sheets URL</label>
+                    <input type="text" id="sheets-url" 
+                           value="https://docs.google.com/spreadsheets/d/1jcQJQWSqKPe6_Hg9n7H3YM4bxqk-ZNyN08U06DBu7os/edit" 
+                           class="w-full p-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Sheet Name</label>
+                    <input type="text" id="sheet-name" value="Sheet1" 
+                           class="w-full p-2 border border-gray-300 rounded-md">
+                </div>
+            </div>
+            <button onclick="loadData()" class="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                Load Data from Sheet
+            </button>
         </div>
-        <div id="content-approveMembers" class="tab-content"></div>
-        <div id="content-manageMembers" class="tab-content hidden"></div>
-        <div id="content-manageCommittee" class="tab-content hidden"></div>
-        <div id="content-news" class="tab-content hidden"></div>
-        <div id="content-activities" class="tab-content hidden"></div>
-        <div id="content-events" class="tab-content hidden"></div>
+
+        <!-- Data Display -->
+        <div id="data-container" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">Applications from Google Sheet</h2>
+                <button onclick="loadData()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    Refresh Data
+                </button>
+            </div>
+            
+            <div id="applications-list" class="space-y-4"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mt-8">
+            <h3 class="text-lg font-semibold text-yellow-800 mb-2">How to use this admin panel:</h3>
+            <ol class="list-decimal list-inside space-y-2 text-yellow-700">
+                <li>Make sure your Google Sheet is <strong>publicly shared</strong> (File → Share → Anyone with the link can view)</li>
+                <li>Click "Load Data from Sheet" to see all applications</li>
+                <li>View application details and manually update status in your Google Sheet</li>
+            </ol>
+        </div>
     </div>
-    
-    <!-- Modals (Initially empty, populated by JS) -->
-    <div id="form-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50"></div>
-    <div id="delete-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50"></div>
-    <div id="payment-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50"></div>
-    <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50">
-        <p id="toast-message">Success!</p>
+
+    <!-- View Modal -->
+    <div id="view-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Application Details</h3>
+                <div id="modal-content"></div>
+                <div class="mt-6 flex justify-end border-t pt-4">
+                    <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <footer class="bg-gradient-to-r from-blue-700 via-indigo-800 to-purple-900 text-white text-center p-6 mt-16">
-        <p class="font-semibold">&copy; 2024 MBSTU Physics Alumni Association. All Rights Reserved.</p>
-    </footer>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const VERIFICATION_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyi74qvsmI_XhnxPUEBBNFuOyHJiUi8ptxB8e1WIM5DJcy6BeHNkWBLinGw6AqwdSW-oA/exec';
-    const DATABASE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymZ7kLWVXMxBQ2bA5HKI9wRNvIlc-cTOmTnOXzqoBPHMcKGhoQDocAzE5cXRs3YAiE/exec'; // Replace with your DATABASE script URL
-    const ADMIN_EMAIL = 'mbstu.phy.alm@gmail.com';
+// Your Google Sheets ID - this is from your URL
+const SHEET_ID = '1jcQJQWSqKPe6_Hg9n7H3YM4bxqk-ZNyN08U06DBu7os';
 
-    const loginContainer = document.getElementById('login-container');
-    const dashboardContainer = document.getElementById('dashboard-container');
-    const emailForm = document.getElementById('email-form');
-    const codeForm = document.getElementById('code-form');
-    const emailStep = document.getElementById('email-step');
-    const codeStep = document.getElementById('code-step');
-    const sendCodeBtn = document.getElementById('send-code-btn');
-    const loginMessage = document.getElementById('login-message');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    let data;
-    const tabs = document.querySelectorAll('.tab-btn');
-    const formModalContainer = document.getElementById('form-modal');
-    const deleteModalContainer = document.getElementById('delete-modal');
-    const paymentModalContainer = document.getElementById('payment-modal');
-
-    // --- VERIFICATION LOGIC ---
-    if (emailForm) {
-        emailForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const email = document.getElementById('admin-email').value;
-            if (email.toLowerCase() !== ADMIN_EMAIL) {
-                loginMessage.textContent = 'Invalid admin email address.'; return;
-            }
-            sendCodeBtn.disabled = true; sendCodeBtn.textContent = 'Sending...'; loginMessage.textContent = '';
-            const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-            const expiry = Date.now() + 10 * 60 * 1000;
-            sessionStorage.setItem('verificationCode', verificationCode);
-            sessionStorage.setItem('codeExpiry', expiry);
-            fetch(VERIFICATION_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({ email, code: verificationCode }),
-            })
-            .then(() => {
-                emailStep.classList.add('hidden');
-                codeStep.classList.remove('hidden');
-            })
-            .catch(error => {
-                loginMessage.textContent = 'Error: Could not send verification code.';
-                console.error('Error:', error);
-            })
-            .finally(() => {
-                sendCodeBtn.disabled = false; sendCodeBtn.textContent = 'Send Code';
-            });
-        });
+async function loadData() {
+    const sheetsUrl = document.getElementById('sheets-url').value;
+    const sheetName = document.getElementById('sheet-name').value || 'Sheet1';
+    
+    // Extract sheet ID from URL or use configured one
+    let sheetId = SHEET_ID;
+    if (sheetsUrl) {
+        const match = sheetsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (match) sheetId = match[1];
     }
 
-    if (codeForm) {
-        codeForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const code = document.getElementById('verification-code').value;
-            const storedCode = sessionStorage.getItem('verificationCode');
-            const expiry = sessionStorage.getItem('codeExpiry');
-            if (Date.now() > parseInt(expiry)) {
-                loginMessage.textContent = 'Code expired. Please request a new one.';
-                codeStep.classList.add('hidden'); emailStep.classList.remove('hidden'); return;
-            }
-            if (code === storedCode) {
-                sessionStorage.setItem('isAdminAuthenticated', 'true'); showDashboard();
-            } else { loginMessage.textContent = 'Invalid verification code.'; }
-        });
+    if (!sheetId) {
+        showMessage('Please enter a valid Google Sheets URL', 'error');
+        return;
     }
 
-    if(logoutBtn) {
-        logoutBtn.addEventListener('click', function () {
-            sessionStorage.removeItem('isAdminAuthenticated');
-            loginContainer.classList.remove('hidden');
-            dashboardContainer.classList.add('hidden');
-        });
-    }
-
-    function showDashboard() {
-        loginContainer.classList.add('hidden');
-        dashboardContainer.classList.remove('hidden');
-        if (!document.body.classList.contains('admin-initialized')) {
-            initializeAdminPanel();
-            document.body.classList.add('admin-initialized');
-        }
-    }
-
-    if (sessionStorage.getItem('isAdminAuthenticated') === 'true') {
-        showDashboard();
-    }
-
-    // --- ADMIN PANEL LOGIC ---
-    function initializeAdminPanel() {
+    try {
+        showMessage('Loading data from Google Sheets...', 'info');
         
-        // KEEP ORIGINAL LOAD DATA FUNCTION - Don't break existing functionality
-        function loadData() {
-            const storedData = localStorage.getItem('alumniData');
-            data = storedData ? JSON.parse(storedData) : { news: [], activities: [], events: [], members: [], pendingMembers: [], committee: [] };
-            ['news', 'activities', 'events', 'members', 'pendingMembers', 'committee'].forEach(key => { if (!data[key]) data[key] = []; });
+        // Use Google Sheets JSON API (no API key needed for public sheets)
+        const range = 'A:Z'; // Read all columns
+        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+        
+        console.log('Loading from URL:', url);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
         }
         
-        function saveData() {
-            localStorage.setItem('alumniData', JSON.stringify(data));
-            window.dispatchEvent(new Event('storage'));
-        }
+        const text = await response.text();
+        console.log('Raw response:', text.substring(0, 200)); // Log first 200 chars
+        
+        // Parse the JSON (Google wraps it in a function call)
+        const json = JSON.parse(text.substring(47, text.length-2));
+        console.log('Parsed data:', json);
+        
+        displayApplications(json);
+        
+    } catch (error) {
+        console.error('Error loading data:', error);
+        showMessage(`Error: ${error.message}. Make sure your Google Sheet is publicly shared.`, 'error');
+    }
+}
 
-        // Update payment status in Google Sheets using DATABASE script
-        async function updatePaymentStatus(paymentData) {
-            try {
-                const response = await fetch(DATABASE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'updatePaymentStatus',
-                        ...paymentData
-                    })
-                });
-                
-                const result = await response.json();
-                return result.success;
-            } catch (error) {
-                console.error('Error updating payment status:', error);
-                return false;
-            }
-        }
+function displayApplications(data) {
+    const container = document.getElementById('data-container');
+    const list = document.getElementById('applications-list');
+    
+    if (!data.table || !data.table.rows || data.table.rows.length === 0) {
+        list.innerHTML = `
+            <div class="bg-gray-100 p-8 rounded-lg text-center">
+                <p class="text-gray-500 text-lg">No data found in the sheet</p>
+                <p class="text-gray-400 mt-2">Make sure:
+                    <br>1. Your Google Sheet is publicly accessible
+                    <br>2. The sheet name is correct
+                    <br>3. There is data in the sheet
+                </p>
+            </div>
+        `;
+        container.classList.remove('hidden');
+        return;
+    }
 
-        function getListItemHTML(type, item) {
-            let title = item.fullName || item.title; let details = ''; let buttons = '';
-            switch (type) {
-                case 'approveMembers': 
-                    details = `<p class="text-sm text-gray-600">Email: ${item.email || 'N/A'}</p>`;
-                    buttons = `<button class="approve-btn p-2 rounded-md bg-green-500 hover:bg-green-600 text-white" data-id="${item.id}">Approve</button><button class="deny-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white" data-id="${item.id}">Deny</button>`; 
-                    break;
-                case 'manageMembers': 
-                    // Enhanced payment status display
-                    const paymentStatus = item.membershipInfo?.status === 'Paid' ? 'Paid' : 'Fee Due';
-                    const paymentColor = paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-                    const paymentDate = item.membershipInfo?.paymentDate;
-                    
-                    details = `
-                        <div class="space-y-1">
-                            <p class="text-sm text-gray-600">${item.email || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">${item.phone || 'N/A'}</p>
-                            <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full ${paymentColor}">
-                                ${paymentStatus}
-                            </span>
-                            ${paymentDate ? `<p class="text-sm text-gray-500">Paid: ${new Date(paymentDate).toLocaleDateString()}</p>` : ''}
+    // Get headers (first row)
+    const headers = data.table.cols.map(col => col.label);
+    console.log('Headers:', headers);
+    
+    // Convert rows to application objects (skip header row if needed)
+    const applications = data.table.rows.map((row, index) => {
+        const app = { id: index + 1, rawData: {} };
+        row.c.forEach((cell, cellIndex) => {
+            const header = headers[cellIndex] || `col_${cellIndex}`;
+            const value = cell ? cell.v : '';
+            app[header] = value;
+            app.rawData[header] = value;
+        });
+        return app;
+    });
+
+    console.log('Applications:', applications);
+
+    list.innerHTML = applications.map(app => {
+        const name = app['Full Name'] || app['fullName'] || 'No Name';
+        const email = app['Email'] || app['email'] || 'N/A';
+        const phone = app['Phone'] || app['phone'] || 'N/A';
+        const batch = app['Batch'] || app['batch'] || 'N/A';
+        const studentId = app['Student ID'] || app['studentId'] || 'N/A';
+        const status = app['Status'] || app['status'] || 'Under_Review';
+        const timestamp = app['Timestamp'] || 'N/A';
+        
+        return `
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <h3 class="font-bold text-xl text-gray-800">${name}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                        <div>
+                            <p class="text-sm text-gray-600"><strong>Email:</strong> ${email}</p>
+                            <p class="text-sm text-gray-600"><strong>Phone:</strong> ${phone}</p>
                         </div>
-                    `;
-                    buttons = `
-                        <button class="payment-btn p-2 rounded-md bg-purple-500 hover:bg-purple-600 text-white text-sm" data-id="${item.id}">Payment</button>
-                        <button class="edit-btn p-2 rounded-md bg-yellow-400 hover:bg-yellow-500 text-white text-sm" data-id="${item.id}" data-type="members">Edit</button>
-                        <button class="delete-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm" data-id="${item.id}" data-type="members">Delete</button>
-                    `;
-                    break;
-                case 'manageCommittee': 
-                    details = `<p class="text-sm text-gray-600">${item.title}</p>`; 
-                    buttons = `<button class="remove-committee-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white" data-id="${item.id}">Remove</button>`; 
-                    break;
-                default: 
-                    details = `<p class="text-sm text-gray-600">${item.content || item.description || ''}</p>`; 
-                    buttons = `<button class="edit-btn p-2 rounded-md bg-yellow-400 hover:bg-yellow-500 text-white" data-id="${item.id}" data-type="${type}">Edit</button><button class="delete-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white" data-id="${item.id}" data-type="${type}">Delete</button>`; 
-                    break;
-            }
-            return `<div class="bg-white shadow-lg rounded-lg p-5 mb-4 flex justify-between items-center"><div><h4 class="font-bold text-lg">${title}</h4>${details}</div><div class="flex space-x-2">${buttons}</div></div>`;
-        }
-
-        function renderContent(type) {
-            const container = document.getElementById(`content-${type}`); if (!container) return;
-            let items, createButtonHTML = '', typeLabel = type.replace(/([A-Z])/g, ' $1').trim(); typeLabel = typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1);
-            switch(type){
-                case 'approveMembers': items = data.pendingMembers; break;
-                case 'manageMembers': items = data.members; break;
-                case 'manageCommittee': items = data.committee; createButtonHTML = `<button class="create-btn mb-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" data-type="manageCommittee">+ Add Committee Member</button>`; break;
-                default: items = data[type]; createButtonHTML = `<button class="create-btn mb-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" data-type="${type}">+ Create New ${typeLabel}</button>`;
-            }
-            let contentHTML = createButtonHTML;
-            if(items && items.length > 0) contentHTML += items.map(item => getListItemHTML(type, item)).join('');
-            else contentHTML += `<div class="bg-gray-100 p-6 rounded-lg text-center text-gray-500">No items found.</div>`;
-            container.innerHTML = contentHTML;
-        }
-
-        function renderAllTabs() { ['approveMembers', 'manageMembers', 'manageCommittee', 'news', 'activities', 'events'].forEach(renderContent); }
-
-        function getFormFieldsHTML(type, item = {}) {
-            const inputClass = "mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500";
-            if (type === 'members') {
-                item.institutionalInfo = item.institutionalInfo || {}; item.professionalInfo = item.professionalInfo || {};
-                item.mailingAddress = item.mailingAddress || {}; item.membershipInfo = item.membershipInfo || { status: 'Pending' };
-                let countryCode = '+880'; let phoneNum = item.phone || '';
-                if (phoneNum.startsWith('+')) { const match = phoneNum.match(/^\+\d{1,4}/); if (match) { countryCode = match[0]; phoneNum = phoneNum.substring(countryCode.length); } }
-                const isPaid = item.membershipInfo.status === 'Paid';
-                return `<div class="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-                    <h3 class="text-lg font-semibold border-b pb-2">Personal & Membership</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium">Full Name</label><input type="text" id="fullName" value="${item.fullName || ''}" class="${inputClass}" required></div>
-                        <div><label class="block text-sm font-medium">Date of Birth</label><input type="date" id="dob" value="${item.dob || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Father's Name</label><input type="text" id="fatherName" value="${item.fatherName || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Mother's Name</label><input type="text" id="motherName" value="${item.motherName || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Gender</label><input type="text" id="gender" value="${item.gender || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Blood Group</label><input type="text" id="bloodGroup" value="${item.bloodGroup || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Email</label><input type="email" id="email" value="${item.email || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Phone</label><div class="flex"><input type="text" id="countryCode" value="${countryCode}" class="w-20 ${inputClass} rounded-r-none"><input type="tel" id="phone" value="${phoneNum}" class="${inputClass} rounded-l-none" required></div></div>
-                         <div><label class="block text-sm font-medium">Fee Status</label><select id="membershipStatus" class="${inputClass}"><option value="Pending" ${!isPaid ? 'selected' : ''}>Pending</option><option value="Paid" ${isPaid ? 'selected' : ''}>Paid</option></select></div>
-                    </div>
-                    <div id="payment-details" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 ${!isPaid ? 'hidden' : ''}">
-                        <div><label class="block text-sm font-medium">Transaction Info</label><input type="text" id="transactionId" value="${item.membershipInfo.transactionId || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Payment Date</label><input type="date" id="paymentDate" value="${item.membershipInfo.paymentDate || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Payment Method</label><input type="text" id="paymentMethod" value="${item.membershipInfo.paymentMethod || ''}" class="${inputClass}"></div>
-                        <div><label class="block text-sm font-medium">Membership Validity</label><input type="date" id="validity" value="${item.membershipInfo.validity || ''}" class="${inputClass}"></div>
-                    </div>
-                    <h3 class="text-lg font-semibold border-b pb-2 pt-4">Institutional Info</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div><label class="block text-sm font-medium">Season</label><input type="text" id="season" value="${item.institutionalInfo.season || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Batch</label><input type="number" id="batch" value="${item.institutionalInfo.batch || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Student ID</label><input type="text" id="studentId" value="${item.institutionalInfo.studentId || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Passing Year</label><input type="number" id="passingYear" value="${item.institutionalInfo.passingYear || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Degree</label><input type="text" id="degree" value="${item.institutionalInfo.degree || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Supervisor</label><input type="text" id="supervisor" value="${item.institutionalInfo.supervisor || ''}" class="${inputClass}"></div>
-                    </div>
-                    <h3 class="text-lg font-semibold border-b pb-2 pt-4">Professional Info</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div><label class="block text-sm font-medium">Sector</label><input type="text" id="sector" value="${item.professionalInfo.sector || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Role</label><input type="text" id="role" value="${item.professionalInfo.role || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Company</label><input type="text" id="company" value="${item.professionalInfo.company || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Work City</label><input type="text" id="workCity" value="${item.professionalInfo.workCity || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Work Country</label><input type="text" id="workCountry" value="${item.professionalInfo.workCountry || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Last Degree</label><input type="text" id="lastDegree" value="${item.professionalInfo.lastDegree || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">University</label><input type="text" id="university" value="${item.professionalInfo.university || ''}" class="${inputClass}"></div>
-                         <div class="md:col-span-2"><label class="block text-sm font-medium">LinkedIn</label><input type="url" id="linkedin" value="${item.professionalInfo.linkedin || ''}" class="${inputClass}"></div>
-                    </div>
-                    <h3 class="text-lg font-semibold border-b pb-2 pt-4">Mailing Address</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div><label class="block text-sm font-medium">Division</label><input type="text" id="division" value="${item.mailingAddress.division || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">District</label><input type="text" id="district" value="${item.mailingAddress.district || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Sub-district</label><input type="text" id="subDistrict" value="${item.mailingAddress.subDistrict || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">City</label><input type="text" id="city" value="${item.mailingAddress.city || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Union/Ward</label><input type="text" id="unionWard" value="${item.mailingAddress.unionWard || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">House No.</label><input type="text" id="houseNumber" value="${item.mailingAddress.houseNumber || ''}" class="${inputClass}"></div>
-                         <div class="md:col-span-2"><label class="block text-sm font-medium">Street</label><input type="text" id="street" value="${item.mailingAddress.street || ''}" class="${inputClass}"></div>
-                         <div><label class="block text-sm font-medium">Postal Code</label><input type="text" id="postalCode" value="${item.mailingAddress.postalCode || ''}" class="${inputClass}"></div>
-                    </div>
-                </div>`;
-            } else if (type === 'manageCommittee') {
-                const memberOptions = data.members.filter(m => !data.committee.some(c => c.id === m.id)).map(m => `<option value="${m.id}">${m.fullName}</option>`).join('');
-                return `<div><label class="block text-sm font-medium">Select Member</label><select id="memberId" class="${inputClass}" required>${memberOptions}</select></div><div class="mt-4"><label class="block text-sm font-medium">Title</label><input type="text" id="title" placeholder="e.g., President" class="${inputClass}" required></div>`;
-            } else {
-                 return `<div><label class="block text-sm font-medium">Title</label><input type="text" id="title" value="${item.title || ''}" class="${inputClass}" required></div>
-                         <div class="mt-4"><label class="block text-sm font-medium">${type === 'news' ? 'Content' : 'Description'}</label><textarea id="${type === 'news' ? 'content' : 'description'}" rows="3" class="${inputClass}" required>${item.content || item.description || ''}</textarea></div>
-                         <div class="mt-4"><label class="block text-sm font-medium">Date</label><input type="date" id="date" value="${item.date || ''}" class="${inputClass}" required></div>
-                         ${type !== 'news' ? `<div class="mt-4"><label class="block text-sm font-medium">Location (Optional)</label><input type="text" id="location" value="${item.location || ''}" class="${inputClass}"></div>` : ''}
-                         <div class="mt-4"><label class="block text-sm font-medium">Image URL (Optional)</label><input type="url" id="imageUrl" value="${item.imageUrl || ''}" class="${inputClass}"></div>`;
-            }
-        }
-
-        // Payment modal function
-        function openPaymentModal(member) {
-            const currentPaymentStatus = member.membershipInfo?.status === 'Paid' ? 'Paid' : 'Fee Due';
-            
-            paymentModalContainer.innerHTML = `
-                <div class="bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all">
-                    <div class="p-6">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-4">Update Payment Status</h3>
-                        <div class="mb-4 p-3 bg-blue-50 rounded-lg">
-                            <p class="font-semibold">${member.fullName}</p>
-                            <p class="text-sm text-gray-600">${member.email} | Batch: ${member.institutionalInfo?.batch || 'N/A'}</p>
+                        <div>
+                            <p class="text-sm text-gray-600"><strong>Batch:</strong> ${batch}</p>
+                            <p class="text-sm text-gray-600"><strong>Student ID:</strong> ${studentId}</p>
                         </div>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Fee Status</label>
-                                <select id="payment-status" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                    <option value="Fee Due" ${currentPaymentStatus === 'Fee Due' ? 'selected' : ''}>Fee Due</option>
-                                    <option value="Paid" ${currentPaymentStatus === 'Paid' ? 'selected' : ''}>Fee Paid</option>
-                                </select>
-                            </div>
-                            
-                            <div id="payment-details" class="${currentPaymentStatus === 'Paid' ? '' : 'hidden'} space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Transaction ID</label>
-                                    <input type="text" id="transaction-id" value="${member.membershipInfo?.transactionId || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="TXN123456">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Payment Date</label>
-                                    <input type="date" id="payment-date" value="${member.membershipInfo?.paymentDate || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Payment Method</label>
-                                    <select id="payment-method" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                        <option value="">Select method</option>
-                                        <option value="bKash" ${member.membershipInfo?.paymentMethod === 'bKash' ? 'selected' : ''}>bKash</option>
-                                        <option value="Bank Transfer" ${member.membershipInfo?.paymentMethod === 'Bank Transfer' ? 'selected' : ''}>Bank Transfer</option>
-                                        <option value="Cash" ${member.membershipInfo?.paymentMethod === 'Cash' ? 'selected' : ''}>Cash</option>
-                                        <option value="Nagad" ${member.membershipInfo?.paymentMethod === 'Nagad' ? 'selected' : ''}>Nagad</option>
-                                        <option value="Other" ${member.membershipInfo?.paymentMethod === 'Other' ? 'selected' : ''}>Other</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Amount (BDT)</label>
-                                    <input type="number" id="amount" value="${member.membershipInfo?.amount || '500'}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Membership Valid Until</label>
-                                    <input type="date" id="validity" value="${member.membershipInfo?.validity || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
-                            <button type="button" class="modal-cancel px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
-                            <button class="save-payment-btn px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" data-id="${member.id}">Save Payment Info</button>
+                        <div>
+                            <p class="text-sm text-gray-600"><strong>Status:</strong> 
+                                <span class="font-semibold ${status.toLowerCase() === 'approved' ? 'text-green-600' : 'text-orange-600'}">
+                                    ${status}
+                                </span>
+                            </p>
+                            <p class="text-sm text-gray-600"><strong>Applied:</strong> ${timestamp ? new Date(timestamp).toLocaleDateString() : 'N/A'}</p>
                         </div>
                     </div>
                 </div>
+                <div class="flex flex-col space-y-2 ml-4">
+                    <button onclick="viewApplication(${app.id})" 
+                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">
+                        View Details
+                    </button>
+                    <button onclick="approveApplication(${app.id})" 
+                            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm">
+                        Mark as Approved
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    container.classList.remove('hidden');
+    showMessage(`Loaded ${applications.length} applications successfully!`, 'success');
+    
+    // Store applications for later use
+    window.applications = applications;
+}
+
+function viewApplication(appId) {
+    const app = window.applications.find(a => a.id === appId);
+    if (!app) return;
+
+    const modalContent = document.getElementById('modal-content');
+    
+    // Create a simple table of all data
+    let detailsHTML = '<div class="space-y-4">';
+    
+    // Group fields by category
+    const personalFields = ['Full Name', 'Email', 'Phone', 'Date of Birth', 'Gender', 'Blood Group', 'Father\'s Name', 'Mother\'s Name'];
+    const institutionalFields = ['Batch', 'Student ID', 'Season', 'Passing Year', 'Degree', 'Supervisor'];
+    const professionalFields = ['Company', 'Role', 'Sector', 'Work City', 'Work Country'];
+    const addressFields = ['Division', 'District', 'City', 'Street', 'Postal Code'];
+    
+    // Show all available data in the app
+    detailsHTML += '<div class="bg-gray-50 p-4 rounded-lg">';
+    detailsHTML += '<h4 class="font-semibold mb-2">All Available Data:</h4>';
+    detailsHTML += '<div class="grid grid-cols-1 md:grid-cols-2 gap-2">';
+    
+    Object.keys(app.rawData).forEach(key => {
+        if (app.rawData[key] && key !== 'id') {
+            detailsHTML += `
+                <div class="text-sm">
+                    <span class="font-medium">${key}:</span>
+                    <span class="ml-2">${app.rawData[key]}</span>
+                </div>
             `;
-            openModal(paymentModalContainer);
         }
+    });
+    
+    detailsHTML += '</div></div></div>';
 
-        function openModal(modal) { modal.classList.remove('hidden'); setTimeout(() => modal.classList.add('opacity-100'), 10); }
-        function openFormModal(type, id = null) {
-             const isEdit = id !== null; let item = {}; let typeLabel = type.replace(/([A-Z])/g, ' $1').trim(); typeLabel = typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1);
-             let title = `Create New ${typeLabel}`; let modalWidth = 'max-w-2xl';
-             if(type === 'manageCommittee') title = 'Add Committee Member';
-             else if (isEdit) { const sourceArray = type === 'members' ? data.members : data[type]; item = sourceArray.find(i => i.id == id); title = `Edit ${typeLabel}`; if (type === 'members') modalWidth = 'max-w-4xl'; }
-             formModalContainer.innerHTML = `<div class="bg-white rounded-lg shadow-xl w-full ${modalWidth} transform transition-all"><div class="p-6"><h3 class="text-2xl font-bold text-gray-800 mb-4">${title}</h3><form id="modal-form" data-type="${type}" data-id="${id || ''}">${getFormFieldsHTML(type, item)}<div class="mt-6 flex justify-end space-x-4 border-t pt-4"><button type="button" class="modal-cancel px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button><button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Save</button></div></form></div></div>`;
-             openModal(formModalContainer);
-        }
-        function openDeleteModal(type, id) {
-            deleteModalContainer.innerHTML = `<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 text-center"><h3 class="text-xl font-bold mb-4">Are you sure?</h3><p class="text-gray-600 mb-6">This action cannot be undone.</p><div class="flex justify-center space-x-4"><button class="modal-cancel px-6 py-2 bg-gray-200 rounded-lg">Cancel</button><button id="delete-confirm" data-type="${type}" data-id="${id}" class="px-6 py-2 bg-red-600 text-white rounded-lg">Delete</button></div></div>`;
-            openModal(deleteModalContainer);
-        }
-        function closeModal() {
-            formModalContainer.classList.remove('opacity-100');
-            deleteModalContainer.classList.remove('opacity-100');
-            paymentModalContainer.classList.remove('opacity-100');
-            setTimeout(() => { 
-                formModalContainer.classList.add('hidden'); 
-                deleteModalContainer.classList.add('hidden');
-                paymentModalContainer.classList.add('hidden');
-            }, 300);
-        }
-        function showToast(message) {
-            const toast = document.getElementById('toast'); toast.querySelector('p').textContent = message;
-            toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
+    modalContent.innerHTML = detailsHTML;
+    document.getElementById('view-modal').classList.remove('hidden');
+}
 
-        // Event Listeners for Dashboard
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => { t.classList.remove('tab-active'); t.classList.add('text-gray-500', 'border-transparent'); });
-                tab.classList.add('tab-active'); tab.classList.remove('text-gray-500', 'border-transparent');
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                document.getElementById(`content-${tab.id.substring(4)}`).classList.remove('hidden');
-            });
-        });
+function createDetailField(label, value) {
+    if (!value) return '';
+    return `
+        <div>
+            <label class="block text-sm font-medium">${label}</label>
+            <input type="text" value="${value}" 
+                   class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-50" readonly>
+        </div>
+    `;
+}
 
-        document.body.addEventListener('click', async e => {
-            if (e.target.classList.contains('modal-cancel')) closeModal();
-            if (e.target.closest('#dashboard-container')) {
-                if(e.target.classList.contains('create-btn')) openFormModal(e.target.dataset.type);
-                if(e.target.classList.contains('edit-btn')) openFormModal(e.target.dataset.type, e.target.dataset.id);
-                if(e.target.classList.contains('delete-btn')) openDeleteModal(e.target.dataset.type, e.target.dataset.id);
-                if(e.target.classList.contains('approve-btn')){ const id = e.target.dataset.id; const member = data.pendingMembers.find(m => m.id == id); if(member){ data.members.push(member); data.pendingMembers = data.pendingMembers.filter(m => m.id != id); saveData(); renderAllTabs(); showToast('Member Approved'); } }
-                if(e.target.classList.contains('deny-btn')){ data.pendingMembers = data.pendingMembers.filter(m => m.id != e.target.dataset.id); saveData(); renderContent('approveMembers'); showToast('Member Denied'); }
-                if(e.target.classList.contains('remove-committee-btn')){ data.committee = data.committee.filter(c => c.id != e.target.dataset.id); saveData(); renderContent('manageCommittee'); showToast('Committee Member Removed'); }
-                if(e.target.classList.contains('payment-btn')){ 
-                    const id = e.target.dataset.id; 
-                    const member = data.members.find(m => m.id == id); 
-                    if(member) openPaymentModal(member); 
-                }
-            }
-            if(e.target.id === 'delete-confirm'){
-                const { type, id } = e.target.dataset;
-                if(type === 'members'){ data.members = data.members.filter(i => i.id != id); data.committee = data.committee.filter(c => c.id != id); }
-                else { data[type] = data[type].filter(i => i.id != id); }
-                saveData(); renderAllTabs(); closeModal(); showToast('Item Deleted');
-            }
-            if(e.target.classList.contains('save-payment-btn')) {
-                const id = e.target.dataset.id;
-                const member = data.members.find(m => m.id == id);
-                if(member) {
-                    const paymentStatus = document.getElementById('payment-status').value;
-                    const paymentData = {
-                        memberId: member.id,
-                        fullName: member.fullName,
-                        email: member.email,
-                        phone: member.phone,
-                        batch: member.institutionalInfo?.batch || '',
-                        paymentStatus: paymentStatus,
-                        transactionId: document.getElementById('transaction-id').value,
-                        paymentDate: document.getElementById('payment-date').value,
-                        paymentMethod: document.getElementById('payment-method').value,
-                        amount: document.getElementById('amount').value,
-                        validity: document.getElementById('validity').value
-                    };
-                    
-                    // Update local data first
-                    if (!member.membershipInfo) member.membershipInfo = {};
-                    member.membershipInfo.status = paymentStatus === 'Paid' ? 'Paid' : 'Pending';
-                    
-                    if(paymentStatus === 'Paid') {
-                        member.membershipInfo.transactionId = paymentData.transactionId;
-                        member.membershipInfo.paymentDate = paymentData.paymentDate;
-                        member.membershipInfo.paymentMethod = paymentData.paymentMethod;
-                        member.membershipInfo.amount = paymentData.amount;
-                        member.membershipInfo.validity = paymentData.validity;
-                    } else {
-                        member.membershipInfo.transactionId = '';
-                        member.membershipInfo.paymentDate = '';
-                        member.membershipInfo.paymentMethod = '';
-                        member.membershipInfo.amount = '';
-                        member.membershipInfo.validity = '';
-                    }
-                    
-                    // Save to Google Sheets
-                    const updated = await updatePaymentStatus(paymentData);
-                    if (updated) {
-                        saveData(); // Save to localStorage
-                        renderContent('manageMembers');
-                        closeModal();
-                        showToast('Payment information saved to database');
-                    } else {
-                        showToast('Error saving payment information');
-                    }
-                }
-            }
-        });
+function approveApplication(appId) {
+    const app = window.applications.find(a => a.id === appId);
+    if (!app) return;
 
-        // Update payment status change handler
-        paymentModalContainer.addEventListener('change', (e) => {
-            if (e.target.id === 'payment-status') {
-                const paymentDetails = document.getElementById('payment-details');
-                if (paymentDetails) {
-                    if (e.target.value === 'Paid') {
-                        paymentDetails.classList.remove('hidden');
-                    } else {
-                        paymentDetails.classList.add('hidden');
-                    }
-                }
-            }
-        });
-
-        formModalContainer.addEventListener('submit', e => {
-            e.preventDefault(); if (e.target.id !== 'modal-form') return;
-            const form = e.target; const { type, id } = form.dataset; const isEdit = id !== '';
-            if (type === 'members' && isEdit) {
-                const memberIndex = data.members.findIndex(m => m.id == id);
-                if (memberIndex > -1) {
-                    const member = data.members[memberIndex];
-                    if (!member.membershipInfo) member.membershipInfo = {};
-                    if (!member.institutionalInfo) member.institutionalInfo = {};
-                    if (!member.professionalInfo) member.professionalInfo = {};
-                    if (!member.mailingAddress) member.mailingAddress = {};
-                    member.fullName = form.querySelector('#fullName').value; member.dob = form.querySelector('#dob').value;
-                    member.fatherName = form.querySelector('#fatherName').value; member.motherName = form.querySelector('#motherName').value;
-                    member.gender = form.querySelector('#gender').value; member.bloodGroup = form.querySelector('#bloodGroup').value;
-                    member.email = form.querySelector('#email').value; member.phone = `${form.querySelector('#countryCode').value}${form.querySelector('#phone').value}`;
-                    member.membershipInfo.status = form.querySelector('#membershipStatus').value;
-                    if(member.membershipInfo.status === 'Paid') {
-                        member.membershipInfo.transactionId = form.querySelector('#transactionId').value || '';
-                        member.membershipInfo.paymentDate = form.querySelector('#paymentDate').value || '';
-                        member.membershipInfo.paymentMethod = form.querySelector('#paymentMethod').value || '';
-                        member.membershipInfo.validity = form.querySelector('#validity').value || '';
-                    } else {
-                        member.membershipInfo.transactionId = '';
-                        member.membershipInfo.paymentDate = '';
-                        member.membershipInfo.paymentMethod = '';
-                        member.membershipInfo.validity = '';
-                    }
-                    Object.assign(member.institutionalInfo, { season: form.querySelector('#season').value, batch: form.querySelector('#batch').value, studentId: form.querySelector('#studentId').value, passingYear: form.querySelector('#passingYear').value, degree: form.querySelector('#degree').value, supervisor: form.querySelector('#supervisor').value });
-                    Object.assign(member.professionalInfo, { sector: form.querySelector('#sector').value, role: form.querySelector('#role').value, company: form.querySelector('#company').value, workCity: form.querySelector('#workCity').value, workCountry: form.querySelector('#workCountry').value, lastDegree: form.querySelector('#lastDegree').value, university: form.querySelector('#university').value, linkedin: form.querySelector('#linkedin').value });
-                    Object.assign(member.mailingAddress, { division: form.querySelector('#division').value, district: form.querySelector('#district').value, subDistrict: form.querySelector('#subDistrict').value, city: form.querySelector('#city').value, unionWard: form.querySelector('#unionWard').value, houseNumber: form.querySelector('#houseNumber').value, street: form.querySelector('#street').value, postalCode: form.querySelector('#postalCode').value });
-                }
-            } else if (type === 'manageCommittee') {
-                const memberId = form.querySelector('#memberId').value; const member = data.members.find(m => m.id == memberId);
-                if(member) { const newCommitteeMember = JSON.parse(JSON.stringify(member)); newCommitteeMember.title = form.querySelector('#title').value; data.committee.push(newCommitteeMember); }
-            } else {
-                let updatedItem = isEdit ? data[type].find(i => i.id == id) : { id: Date.now() };
-                updatedItem.title = form.querySelector('#title').value; updatedItem.imageUrl = form.querySelector('#imageUrl').value;
-                if(type === 'news') updatedItem.content = form.querySelector('#content').value;
-                else { updatedItem.description = form.querySelector('#description').value; updatedItem.date = form.querySelector('#date').value; updatedItem.location = form.querySelector('#location').value; }
-                if(!isEdit) data[type].push(updatedItem);
-            }
-            saveData(); renderAllTabs(); closeModal(); showToast(`Item ${isEdit ? 'updated' : 'created'}`);
-        });
+    const name = app['Full Name'] || app['fullName'] || 'this application';
+    if (confirm(`Are you sure you want to approve ${name}?`)) {
+        showMessage(`Application marked as approved. Please manually update the "Status" column in your Google Sheet to "approved".`, 'info');
         
-        loadData();
-        renderAllTabs();
+        // In a real implementation, you would update Google Sheets here
+        console.log('Would approve application:', app);
     }
+}
+
+function closeModal() {
+    document.getElementById('view-modal').classList.add('hidden');
+}
+
+function showMessage(message, type = 'info') {
+    // Remove any existing message
+    const existingMessage = document.getElementById('status-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+
+    const colors = {
+        info: 'bg-blue-500',
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-yellow-500'
+    };
+
+    const messageDiv = document.createElement('div');
+    messageDiv.id = 'status-message';
+    messageDiv.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`;
+    messageDiv.textContent = message;
+
+    document.body.appendChild(messageDiv);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.parentNode.removeChild(messageDiv);
+        }
+    }, 5000);
+}
+
+// Auto-load data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        loadData();
+    }, 1000);
 });
 </script>
 </body>
 </html>
-
