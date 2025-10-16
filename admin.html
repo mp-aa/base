@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MBSTU Physics Alumni - Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -16,14 +13,6 @@
             <div class="main-title text-4xl sm:text-5xl font-extrabold tracking-tight">MBSTU PHYSICS ALUMNI ASSOCIATION</div>
             <div class="university-name text-lg sm:text-xl font-semibold mt-1">MAWLANA BHASHANI SCIENCE AND TECHNOLOGY UNIVERSITY</div>
         </div>
-        <nav class="nav bg-white shadow-sm">
-            <div class="nav-container max-w-7xl mx-auto flex justify-center items-center space-x-2 sm:space-x-4 p-4 overflow-x-auto whitespace-nowrap">
-                <a href="index.html" class="nav-tab text-purple-600 font-bold border-b-2 border-purple-600 px-3 py-2 rounded-md text-sm sm:text-base">Home</a>
-                <a href="membership-form.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Become a Member</a>
-                <a href="members.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Current Members</a>
-                <a href="admin.html" class="nav-tab text-gray-600 hover:text-purple-600 transition duration-300 px-3 py-2 rounded-md text-sm sm:text-base font-medium">Admin</a>
-            </div>
-        </nav>
     </div>
 
     <!-- Admin Panel -->
@@ -54,45 +43,41 @@
         </div>
     </div>
 
-    <footer class="bg-gradient-to-r from-blue-700 via-indigo-800 to-purple-900 text-white text-center p-6 mt-16">
-        <p class="font-semibold">&copy; 2024 MBSTU Physics Alumni Association. All Rights Reserved.</p>
-    </footer>
-
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwWxhBaak1E8R-YcNqishdQMI_m5KsTHQ8NUfl2b8WGarrVVK6LDmvc1bh6RWXyk47O/exec';
 
-        async function loadData() {
+        // JSONP method to load data
+        function loadData() {
             document.getElementById('status').textContent = 'Loading data...';
             
-            try {
-                const response = await fetch(SCRIPT_URL);
-                const data = await response.json();
-                
-                if (data.error) {
-                    document.getElementById('status').textContent = 'Error: ' + data.error;
-                    return;
-                }
-                
-                displayPendingApplications(data.pending || []);
-                displayApprovedMembers(data.approved || []);
-                document.getElementById('status').textContent = `Loaded ${data.pending?.length || 0} pending, ${data.approved?.length || 0} approved`;
-                
-            } catch (error) {
-                document.getElementById('status').textContent = 'Error loading data: ' + error.message;
-                console.error('Error:', error);
+            // Remove any existing script
+            const oldScript = document.getElementById('jsonp-script');
+            if (oldScript) oldScript.remove();
+            
+            // Create script tag for JSONP
+            const script = document.createElement('script');
+            script.id = 'jsonp-script';
+            script.src = SCRIPT_URL + '?callback=handleData';
+            document.head.appendChild(script);
+        }
+
+        // Handle JSONP response
+        function handleData(data) {
+            if (data.error) {
+                document.getElementById('status').textContent = 'Error: ' + data.error;
+                return;
             }
+            
+            displayPendingApplications(data.pending || []);
+            displayApprovedMembers(data.approved || []);
+            document.getElementById('status').textContent = `Loaded ${data.pending?.length || 0} pending, ${data.approved?.length || 0} approved`;
         }
 
         function displayPendingApplications(applications) {
             const container = document.getElementById('pending-applications');
             
             if (applications.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <p class="text-lg">No pending applications</p>
-                        <p class="text-sm mt-2">All applications have been processed</p>
-                    </div>
-                `;
+                container.innerHTML = '<div class="text-center py-8 text-gray-500">No pending applications</div>';
                 return;
             }
             
@@ -110,7 +95,6 @@
                                 <div>
                                     <p><strong>Student ID:</strong> ${app.studentId}</p>
                                     <p><strong>Status:</strong> <span class="text-orange-600 font-medium">${app.status}</span></p>
-                                    <p><strong>Row:</strong> ${app.row}</p>
                                 </div>
                             </div>
                         </div>
@@ -133,30 +117,23 @@
             const container = document.getElementById('approved-members');
             
             if (members.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <p class="text-lg">No approved members</p>
-                        <p class="text-sm mt-2">Approve some applications to see members here</p>
-                    </div>
-                `;
+                container.innerHTML = '<div class="text-center py-8 text-gray-500">No approved members</div>';
                 return;
             }
             
             container.innerHTML = members.map(member => `
                 <div class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-xl text-gray-800 mb-2">${member.name}</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                                <div>
-                                    <p><strong>Email:</strong> ${member.email}</p>
-                                    <p><strong>Phone:</strong> ${member.phone}</p>
-                                    <p><strong>Batch:</strong> ${member.batch}</p>
-                                </div>
-                                <div>
-                                    <p><strong>Student ID:</strong> ${member.studentId}</p>
-                                    <p><strong>Status:</strong> <span class="text-green-600 font-medium">✓ Approved</span></p>
-                                </div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-xl text-gray-800 mb-2">${member.name}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div>
+                                <p><strong>Email:</strong> ${member.email}</p>
+                                <p><strong>Phone:</strong> ${member.phone}</p>
+                                <p><strong>Batch:</strong> ${member.batch}</p>
+                            </div>
+                            <div>
+                                <p><strong>Student ID:</strong> ${member.studentId}</p>
+                                <p><strong>Status:</strong> <span class="text-green-600 font-medium">✓ Approved</span></p>
                             </div>
                         </div>
                     </div>
@@ -164,66 +141,60 @@
             `).join('');
         }
 
-        async function approveApplication(row) {
-            if (!confirm('Are you sure you want to approve this application?')) return;
-            
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        row: row,
-                        status: 'approved'
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Application approved successfully!');
-                    loadData(); // Refresh data
-                } else {
-                    alert('Error: ' + result.error);
-                }
-            } catch (error) {
-                alert('Error approving application: ' + error.message);
+        function approveApplication(row) {
+            if (confirm('Approve this application?')) {
+                // For POST, we'll use a simple form submission
+                updateStatus(row, 'approved');
             }
         }
 
-        async function rejectApplication(row) {
-            if (!confirm('Are you sure you want to reject this application?')) return;
-            
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        row: row,
-                        status: 'rejected'
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Application rejected successfully!');
-                    loadData(); // Refresh data
-                } else {
-                    alert('Error: ' + result.error);
-                }
-            } catch (error) {
-                alert('Error rejecting application: ' + error.message);
+        function rejectApplication(row) {
+            if (confirm('Reject this application?')) {
+                updateStatus(row, 'rejected');
             }
         }
 
-        // Load data when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-        });
+        // Simple form submission for POST requests
+        function updateStatus(row, status) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = SCRIPT_URL;
+            form.target = 'hiddenFrame';
+            form.style.display = 'none';
+            
+            const rowInput = document.createElement('input');
+            rowInput.name = 'row';
+            rowInput.value = row;
+            
+            const statusInput = document.createElement('input');
+            statusInput.name = 'status';
+            statusInput.value = status;
+            
+            form.appendChild(rowInput);
+            form.appendChild(statusInput);
+            document.body.appendChild(form);
+            
+            // Create hidden iframe for response
+            let iframe = document.getElementById('hiddenFrame');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'hiddenFrame';
+                iframe.name = 'hiddenFrame';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+            
+            form.submit();
+            
+            setTimeout(() => {
+                document.body.removeChild(form);
+                alert('Status updated successfully!');
+                loadData(); // Refresh data
+            }, 1000);
+        }
+
+        // Load data on page load
+        loadData();
     </script>
 </body>
 </html>
