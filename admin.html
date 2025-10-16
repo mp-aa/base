@@ -3,324 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MBSTU Physics Alumni - Admin Panel</title>
+    <title>MBSTU Physics Alumni - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-
-    <!-- Header -->
-    <div class="bg-white shadow-md">
-        <div class="header text-center py-6 bg-gradient-to-r from-blue-700 via-indigo-800 to-purple-900 text-white">
-            <div class="main-title text-4xl sm:text-5xl font-extrabold tracking-tight">MBSTU PHYSICS ALUMNI ASSOCIATION</div>
-            <div class="university-name text-lg sm:text-xl font-semibold mt-1">MAWLANA BHASHANI SCIENCE AND TECHNOLOGY UNIVERSITY</div>
-        </div>
-    </div>
-
-    <!-- Admin Panel -->
-    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <h1 class="text-3xl font-bold text-purple-800 mb-6">Admin Dashboard</h1>
-        
-        <!-- Configuration Section -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 class="text-xl font-semibold mb-4">Google Sheets Configuration</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Google Sheets URL</label>
-                    <input type="text" id="sheets-url" 
-                           value="https://docs.google.com/spreadsheets/d/1jcQJQWSqKPe6_Hg9n7H3YM4bxqk-ZNyN08U06DBu7os/edit" 
-                           class="w-full p-2 border border-gray-300 rounded-md">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Sheet Name</label>
-                    <input type="text" id="sheet-name" value="Sheet1" 
-                           class="w-full p-2 border border-gray-300 rounded-md">
-                </div>
-            </div>
-            <button onclick="loadData()" class="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                Load Data from Sheet
-            </button>
-        </div>
-
-        <!-- Data Display -->
-        <div id="data-container" class="hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-semibold">Applications from Google Sheet</h2>
-                <button onclick="loadData()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
-                    Refresh Data
+<body class="bg-gray-50">
+    <div class="min-h-screen p-6">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-3xl font-bold text-purple-800 mb-8">Admin Panel - Applications</h1>
+            
+            <div class="mb-6">
+                <button onclick="loadData()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700">
+                    Refresh All Data
                 </button>
             </div>
-            
-            <div id="applications-list" class="space-y-4"></div>
-        </div>
 
-        <!-- Instructions -->
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mt-8">
-            <h3 class="text-lg font-semibold text-yellow-800 mb-2">How to use this admin panel:</h3>
-            <ol class="list-decimal list-inside space-y-2 text-yellow-700">
-                <li>Make sure your Google Sheet is <strong>publicly shared</strong> (File → Share → Anyone with the link can view)</li>
-                <li>Click "Load Data from Sheet" to see all applications</li>
-                <li>View application details and manually update status in your Google Sheet</li>
-            </ol>
-        </div>
-    </div>
+            <!-- Pending Applications -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">Pending Applications</h2>
+                <div id="pending-applications" class="space-y-4">
+                    <div class="text-center py-8 text-gray-500">Loading...</div>
+                </div>
+            </div>
 
-    <!-- View Modal -->
-    <div id="view-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <h3 class="text-2xl font-bold text-gray-800 mb-4">Application Details</h3>
-                <div id="modal-content"></div>
-                <div class="mt-6 flex justify-end border-t pt-4">
-                    <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Close</button>
+            <!-- Approved Members -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Approved Members</h2>
+                <div id="approved-members" class="space-y-4">
+                    <div class="text-center py-8 text-gray-500">Loading...</div>
                 </div>
             </div>
         </div>
     </div>
 
-<script>
-// Your Google Sheets ID - this is from your URL
-const SHEET_ID = '1jcQJQWSqKPe6_Hg9n7H3YM4bxqk-ZNyN08U06DBu7os';
+    <script>
+        // REPLACE THIS WITH YOUR NEW ADMIN SCRIPT URL
+        const ADMIN_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_NEW_ADMIN_SCRIPT_ID/exec';
 
-async function loadData() {
-    const sheetsUrl = document.getElementById('sheets-url').value;
-    const sheetName = document.getElementById('sheet-name').value || 'Sheet1';
-    
-    // Extract sheet ID from URL or use configured one
-    let sheetId = SHEET_ID;
-    if (sheetsUrl) {
-        const match = sheetsUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-        if (match) sheetId = match[1];
-    }
-
-    if (!sheetId) {
-        showMessage('Please enter a valid Google Sheets URL', 'error');
-        return;
-    }
-
-    try {
-        showMessage('Loading data from Google Sheets...', 'info');
-        
-        // Use Google Sheets JSON API (no API key needed for public sheets)
-        const range = 'A:Z'; // Read all columns
-        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
-        
-        console.log('Loading from URL:', url);
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
+        async function loadData() {
+            await loadPendingApplications();
+            await loadApprovedMembers();
         }
-        
-        const text = await response.text();
-        console.log('Raw response:', text.substring(0, 200)); // Log first 200 chars
-        
-        // Parse the JSON (Google wraps it in a function call)
-        const json = JSON.parse(text.substring(47, text.length-2));
-        console.log('Parsed data:', json);
-        
-        displayApplications(json);
-        
-    } catch (error) {
-        console.error('Error loading data:', error);
-        showMessage(`Error: ${error.message}. Make sure your Google Sheet is publicly shared.`, 'error');
-    }
-}
 
-function displayApplications(data) {
-    const container = document.getElementById('data-container');
-    const list = document.getElementById('applications-list');
-    
-    if (!data.table || !data.table.rows || data.table.rows.length === 0) {
-        list.innerHTML = `
-            <div class="bg-gray-100 p-8 rounded-lg text-center">
-                <p class="text-gray-500 text-lg">No data found in the sheet</p>
-                <p class="text-gray-400 mt-2">Make sure:
-                    <br>1. Your Google Sheet is publicly accessible
-                    <br>2. The sheet name is correct
-                    <br>3. There is data in the sheet
-                </p>
-            </div>
-        `;
-        container.classList.remove('hidden');
-        return;
-    }
-
-    // Get headers (first row)
-    const headers = data.table.cols.map(col => col.label);
-    console.log('Headers:', headers);
-    
-    // Convert rows to application objects (skip header row if needed)
-    const applications = data.table.rows.map((row, index) => {
-        const app = { id: index + 1, rawData: {} };
-        row.c.forEach((cell, cellIndex) => {
-            const header = headers[cellIndex] || `col_${cellIndex}`;
-            const value = cell ? cell.v : '';
-            app[header] = value;
-            app.rawData[header] = value;
-        });
-        return app;
-    });
-
-    console.log('Applications:', applications);
-
-    list.innerHTML = applications.map(app => {
-        const name = app['Full Name'] || app['fullName'] || 'No Name';
-        const email = app['Email'] || app['email'] || 'N/A';
-        const phone = app['Phone'] || app['phone'] || 'N/A';
-        const batch = app['Batch'] || app['batch'] || 'N/A';
-        const studentId = app['Student ID'] || app['studentId'] || 'N/A';
-        const status = app['Status'] || app['status'] || 'Under_Review';
-        const timestamp = app['Timestamp'] || 'N/A';
-        
-        return `
-        <div class="bg-white shadow-lg rounded-lg p-6">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <h3 class="font-bold text-xl text-gray-800">${name}</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                        <div>
-                            <p class="text-sm text-gray-600"><strong>Email:</strong> ${email}</p>
-                            <p class="text-sm text-gray-600"><strong>Phone:</strong> ${phone}</p>
+        async function loadPendingApplications() {
+            try {
+                const response = await fetch(`${ADMIN_SCRIPT_URL}?action=getPendingApplications`);
+                const result = await response.json();
+                
+                const container = document.getElementById('pending-applications');
+                
+                if (result.success && result.applications.length > 0) {
+                    container.innerHTML = result.applications.map(app => `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-lg">${app.fullName}</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
+                                        <div>
+                                            <p><strong>Email:</strong> ${app.email}</p>
+                                            <p><strong>Phone:</strong> ${app.phone}</p>
+                                            <p><strong>Batch:</strong> ${app.institutionalInfo.batch}</p>
+                                        </div>
+                                        <div>
+                                            <p><strong>Student ID:</strong> ${app.institutionalInfo.studentId}</p>
+                                            <p><strong>Applied:</strong> ${new Date(app.appliedDate).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-2 ml-4">
+                                    <button onclick="approveApplication(${app.id})" 
+                                            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                        Approve
+                                    </button>
+                                    <button onclick="rejectApplication(${app.id})" 
+                                            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-600"><strong>Batch:</strong> ${batch}</p>
-                            <p class="text-sm text-gray-600"><strong>Student ID:</strong> ${studentId}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600"><strong>Status:</strong> 
-                                <span class="font-semibold ${status.toLowerCase() === 'approved' ? 'text-green-600' : 'text-orange-600'}">
-                                    ${status}
-                                </span>
-                            </p>
-                            <p class="text-sm text-gray-600"><strong>Applied:</strong> ${timestamp ? new Date(timestamp).toLocaleDateString() : 'N/A'}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex flex-col space-y-2 ml-4">
-                    <button onclick="viewApplication(${app.id})" 
-                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">
-                        View Details
-                    </button>
-                    <button onclick="approveApplication(${app.id})" 
-                            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm">
-                        Mark as Approved
-                    </button>
-                </div>
-            </div>
-        </div>
-        `;
-    }).join('');
-
-    container.classList.remove('hidden');
-    showMessage(`Loaded ${applications.length} applications successfully!`, 'success');
-    
-    // Store applications for later use
-    window.applications = applications;
-}
-
-function viewApplication(appId) {
-    const app = window.applications.find(a => a.id === appId);
-    if (!app) return;
-
-    const modalContent = document.getElementById('modal-content');
-    
-    // Create a simple table of all data
-    let detailsHTML = '<div class="space-y-4">';
-    
-    // Group fields by category
-    const personalFields = ['Full Name', 'Email', 'Phone', 'Date of Birth', 'Gender', 'Blood Group', 'Father\'s Name', 'Mother\'s Name'];
-    const institutionalFields = ['Batch', 'Student ID', 'Season', 'Passing Year', 'Degree', 'Supervisor'];
-    const professionalFields = ['Company', 'Role', 'Sector', 'Work City', 'Work Country'];
-    const addressFields = ['Division', 'District', 'City', 'Street', 'Postal Code'];
-    
-    // Show all available data in the app
-    detailsHTML += '<div class="bg-gray-50 p-4 rounded-lg">';
-    detailsHTML += '<h4 class="font-semibold mb-2">All Available Data:</h4>';
-    detailsHTML += '<div class="grid grid-cols-1 md:grid-cols-2 gap-2">';
-    
-    Object.keys(app.rawData).forEach(key => {
-        if (app.rawData[key] && key !== 'id') {
-            detailsHTML += `
-                <div class="text-sm">
-                    <span class="font-medium">${key}:</span>
-                    <span class="ml-2">${app.rawData[key]}</span>
-                </div>
-            `;
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500">No pending applications</div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('pending-applications').innerHTML = 
+                    '<div class="text-center py-8 text-red-500">Error loading applications</div>';
+            }
         }
-    });
-    
-    detailsHTML += '</div></div></div>';
 
-    modalContent.innerHTML = detailsHTML;
-    document.getElementById('view-modal').classList.remove('hidden');
-}
-
-function createDetailField(label, value) {
-    if (!value) return '';
-    return `
-        <div>
-            <label class="block text-sm font-medium">${label}</label>
-            <input type="text" value="${value}" 
-                   class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-50" readonly>
-        </div>
-    `;
-}
-
-function approveApplication(appId) {
-    const app = window.applications.find(a => a.id === appId);
-    if (!app) return;
-
-    const name = app['Full Name'] || app['fullName'] || 'this application';
-    if (confirm(`Are you sure you want to approve ${name}?`)) {
-        showMessage(`Application marked as approved. Please manually update the "Status" column in your Google Sheet to "approved".`, 'info');
-        
-        // In a real implementation, you would update Google Sheets here
-        console.log('Would approve application:', app);
-    }
-}
-
-function closeModal() {
-    document.getElementById('view-modal').classList.add('hidden');
-}
-
-function showMessage(message, type = 'info') {
-    // Remove any existing message
-    const existingMessage = document.getElementById('status-message');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
-
-    const colors = {
-        info: 'bg-blue-500',
-        success: 'bg-green-500',
-        error: 'bg-red-500',
-        warning: 'bg-yellow-500'
-    };
-
-    const messageDiv = document.createElement('div');
-    messageDiv.id = 'status-message';
-    messageDiv.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`;
-    messageDiv.textContent = message;
-
-    document.body.appendChild(messageDiv);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (messageDiv.parentNode) {
-            messageDiv.parentNode.removeChild(messageDiv);
+        async function loadApprovedMembers() {
+            try {
+                const response = await fetch(`${ADMIN_SCRIPT_URL}?action=getApprovedMembers`);
+                const result = await response.json();
+                
+                const container = document.getElementById('approved-members');
+                
+                if (result.success && result.members.length > 0) {
+                    container.innerHTML = result.members.map(member => `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-lg">${member.fullName}</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
+                                        <div>
+                                            <p><strong>Email:</strong> ${member.email}</p>
+                                            <p><strong>Phone:</strong> ${member.phone}</p>
+                                            <p><strong>Batch:</strong> ${member.institutionalInfo.batch}</p>
+                                        </div>
+                                        <div>
+                                            <p><strong>Student ID:</strong> ${member.institutionalInfo.studentId}</p>
+                                            <p><strong>Approved:</strong> ${new Date(member.appliedDate).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500">No approved members</div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('approved-members').innerHTML = 
+                    '<div class="text-center py-8 text-red-500">Error loading members</div>';
+            }
         }
-    }, 5000);
-}
 
-// Auto-load data when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
+        async function approveApplication(applicationId) {
+            if (confirm('Approve this application?')) {
+                try {
+                    const response = await fetch(ADMIN_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updateApplicationStatus',
+                            applicationId: applicationId,
+                            status: 'approved'
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Approved!');
+                        loadData();
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Error approving application');
+                }
+            }
+        }
+
+        async function rejectApplication(applicationId) {
+            if (confirm('Reject this application?')) {
+                try {
+                    const response = await fetch(ADMIN_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updateApplicationStatus',
+                            applicationId: applicationId,
+                            status: 'rejected'
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Rejected!');
+                        loadData();
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Error rejecting application');
+                }
+            }
+        }
+
+        // Load data on page load
         loadData();
-    }, 1000);
-});
-</script>
+    </script>
 </body>
 </html>
