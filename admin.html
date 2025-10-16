@@ -8,21 +8,21 @@
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen p-6">
-        <div class="max-w-6xl mx-auto">
-            <h1 class="text-3xl font-bold text-purple-800 mb-8">Admin Panel</h1>
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold text-purple-800 mb-8">Admin Panel - Application Review</h1>
             
             <div class="mb-6">
                 <button onclick="loadData()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700">
-                    Refresh Data
+                    Refresh All Data
                 </button>
                 <span id="status-message" class="ml-4 text-gray-600"></span>
             </div>
 
             <!-- Pending Applications -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 class="text-xl font-semibold mb-4">Pending Applications</h2>
-                <div id="pending-applications" class="space-y-4">
-                    <div class="text-center py-8 text-gray-500">Loading...</div>
+                <h2 class="text-xl font-semibold mb-4">Pending Applications (Need Review)</h2>
+                <div id="pending-applications" class="space-y-6">
+                    <div class="text-center py-8 text-gray-500">Loading applications...</div>
                 </div>
             </div>
 
@@ -30,14 +30,37 @@
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h2 class="text-xl font-semibold mb-4">Approved Members</h2>
                 <div id="approved-members" class="space-y-4">
-                    <div class="text-center py-8 text-gray-500">Loading...</div>
+                    <div class="text-center py-8 text-gray-500">Loading approved members...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="review-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Review Application</h3>
+                <div id="review-content"></div>
+                <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
+                    <button onclick="closeReviewModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                        Close
+                    </button>
+                    <button id="reject-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                        Deny Application
+                    </button>
+                    <button id="approve-btn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+                        Approve Application
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const ADMIN_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0qbMAVFjD1OdOz5DW_ARQ2tnaUcbJXSsKFhLAEJrWCSUcpT2OxeYBiBEvOSfPSgLB/exec';
+        const ADMIN_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyL3rfQTVxtBoPVAw1x53SQfahLNNrV4f8B1-9au5hb4tLDeTj2k-Yp0MI6Oy8bYyKY/exec';
+
+        let currentApplicationId = null;
 
         function showMessage(message, type = 'info') {
             const statusEl = document.getElementById('status-message');
@@ -49,7 +72,7 @@
             showMessage('Loading data...');
             await loadPendingApplications();
             await loadApprovedMembers();
-            showMessage('Data loaded', 'success');
+            showMessage('Data loaded successfully', 'success');
         }
 
         async function loadPendingApplications() {
@@ -61,29 +84,37 @@
                 
                 if (result.success && result.applications.length > 0) {
                     container.innerHTML = result.applications.map(app => `
-                        <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="border border-gray-200 rounded-lg p-6">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
-                                    <h3 class="font-semibold text-lg">${app.fullName || 'No Name'}</h3>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
+                                    <h3 class="font-semibold text-xl text-gray-800 mb-3">${app.fullName || 'No Name'}</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                                         <div>
+                                            <p class="font-medium">Contact Info</p>
                                             <p><strong>Email:</strong> ${app.email || 'N/A'}</p>
                                             <p><strong>Phone:</strong> ${app.phone || 'N/A'}</p>
+                                            <p><strong>Gender:</strong> ${app.gender || 'N/A'}</p>
+                                            <p><strong>Blood Group:</strong> ${app.bloodGroup || 'N/A'}</p>
                                         </div>
                                         <div>
+                                            <p class="font-medium">Academic Info</p>
                                             <p><strong>Batch:</strong> ${app.institutionalInfo?.batch || 'N/A'}</p>
                                             <p><strong>Student ID:</strong> ${app.institutionalInfo?.studentId || 'N/A'}</p>
+                                            <p><strong>Season:</strong> ${app.institutionalInfo?.season || 'N/A'}</p>
+                                            <p><strong>Degree:</strong> ${app.institutionalInfo?.degree || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Application Details</p>
+                                            <p><strong>Membership Type:</strong> ${app.membershipType || 'N/A'}</p>
+                                            <p><strong>Applied Date:</strong> ${app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'N/A'}</p>
+                                            <p><strong>Status:</strong> <span class="text-orange-600 font-medium">${app.applicationStatus}</span></p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="flex flex-col gap-2 ml-4">
-                                    <button onclick="approveApplication(${app.id})" 
-                                            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                                        Approve
-                                    </button>
-                                    <button onclick="rejectApplication(${app.id})" 
-                                            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                                        Deny
+                                    <button onclick="openReviewModal(${app.id})" 
+                                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                        Review Full Details
                                     </button>
                                 </div>
                             </div>
@@ -116,10 +147,12 @@
                                         <div>
                                             <p><strong>Email:</strong> ${member.email || 'N/A'}</p>
                                             <p><strong>Phone:</strong> ${member.phone || 'N/A'}</p>
+                                            <p><strong>Batch:</strong> ${member.institutionalInfo?.batch || 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <p><strong>Batch:</strong> ${member.institutionalInfo?.batch || 'N/A'}</p>
+                                            <p><strong>Student ID:</strong> ${member.institutionalInfo?.studentId || 'N/A'}</p>
                                             <p><strong>Approved:</strong> ${member.appliedDate ? new Date(member.appliedDate).toLocaleDateString() : 'N/A'}</p>
+                                            <p class="text-green-600 font-medium">✓ Approved</p>
                                         </div>
                                     </div>
                                 </div>
@@ -136,9 +169,117 @@
             }
         }
 
+        async function openReviewModal(applicationId) {
+            try {
+                showMessage('Loading application details...');
+                const response = await fetch(`${ADMIN_SCRIPT_URL}?action=getPendingApplications`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const application = result.applications.find(app => app.id === applicationId);
+                    if (application) {
+                        currentApplicationId = applicationId;
+                        showApplicationDetails(application);
+                        document.getElementById('review-modal').classList.remove('hidden');
+                    } else {
+                        showMessage('Application not found', 'error');
+                    }
+                }
+            } catch (error) {
+                showMessage('Error loading details', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function showApplicationDetails(app) {
+            const content = document.getElementById('review-content');
+            
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Personal Information -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3">Personal Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div><strong>Full Name:</strong> ${app.fullName || 'N/A'}</div>
+                            <div><strong>Date of Birth:</strong> ${app.dob || 'N/A'}</div>
+                            <div><strong>Gender:</strong> ${app.gender || 'N/A'}</div>
+                            <div><strong>Blood Group:</strong> ${app.bloodGroup || 'N/A'}</div>
+                            <div><strong>Father's Name:</strong> ${app.fatherName || 'N/A'}</div>
+                            <div><strong>Mother's Name:</strong> ${app.motherName || 'N/A'}</div>
+                            <div><strong>Email:</strong> ${app.email || 'N/A'}</div>
+                            <div><strong>Phone:</strong> ${app.phone || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Institutional Information -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3">Institutional Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div><strong>Season:</strong> ${app.institutionalInfo?.season || 'N/A'}</div>
+                            <div><strong>Batch:</strong> ${app.institutionalInfo?.batch || 'N/A'}</div>
+                            <div><strong>Student ID:</strong> ${app.institutionalInfo?.studentId || 'N/A'}</div>
+                            <div><strong>Passing Year:</strong> ${app.institutionalInfo?.passingYear || 'N/A'}</div>
+                            <div><strong>Degree:</strong> ${app.institutionalInfo?.degree || 'N/A'}</div>
+                            <div><strong>Supervisor:</strong> ${app.institutionalInfo?.supervisor || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Information -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3">Professional Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div><strong>Job Preparation:</strong> ${app.professionalInfo?.jobPreparation ? 'Yes' : 'No'}</div>
+                            <div><strong>Sector:</strong> ${app.professionalInfo?.sector || 'N/A'}</div>
+                            <div><strong>Role:</strong> ${app.professionalInfo?.role || 'N/A'}</div>
+                            <div><strong>Company:</strong> ${app.professionalInfo?.company || 'N/A'}</div>
+                            <div><strong>Work City:</strong> ${app.professionalInfo?.workCity || 'N/A'}</div>
+                            <div><strong>Work Country:</strong> ${app.professionalInfo?.workCountry || 'N/A'}</div>
+                            <div><strong>Last Degree:</strong> ${app.professionalInfo?.lastDegree || 'N/A'}</div>
+                            <div><strong>University:</strong> ${app.professionalInfo?.university || 'N/A'}</div>
+                            <div class="md:col-span-2"><strong>LinkedIn:</strong> ${app.professionalInfo?.linkedin || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Mailing Address -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3">Mailing Address</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div><strong>Division:</strong> ${app.mailingAddress?.division || 'N/A'}</div>
+                            <div><strong>District:</strong> ${app.mailingAddress?.district || 'N/A'}</div>
+                            <div><strong>Sub District:</strong> ${app.mailingAddress?.subDistrict || 'N/A'}</div>
+                            <div><strong>City:</strong> ${app.mailingAddress?.city || 'N/A'}</div>
+                            <div><strong>Union/Ward:</strong> ${app.mailingAddress?.unionWard || 'N/A'}</div>
+                            <div><strong>House Number:</strong> ${app.mailingAddress?.houseNumber || 'N/A'}</div>
+                            <div class="md:col-span-2"><strong>Street:</strong> ${app.mailingAddress?.street || 'N/A'}</div>
+                            <div><strong>Postal Code:</strong> ${app.mailingAddress?.postalCode || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Application Summary -->
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h4 class="text-lg font-semibold mb-2 text-blue-800">Application Summary</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div><strong>Membership Type:</strong> ${app.membershipType || 'N/A'}</div>
+                            <div><strong>Applied Date:</strong> ${app.appliedDate ? new Date(app.appliedDate).toLocaleString() : 'N/A'}</div>
+                            <div><strong>Current Status:</strong> <span class="text-orange-600 font-medium">${app.applicationStatus}</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Set up button event listeners
+            document.getElementById('approve-btn').onclick = () => approveApplication(currentApplicationId);
+            document.getElementById('reject-btn').onclick = () => rejectApplication(currentApplicationId);
+        }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').classList.add('hidden');
+            currentApplicationId = null;
+        }
+
         async function approveApplication(applicationId) {
-            if (confirm('Approve this application?')) {
-                showMessage('Approving...');
+            if (confirm('Are you sure you want to APPROVE this application? This action cannot be undone.')) {
+                showMessage('Approving application...');
                 try {
                     const response = await fetch(ADMIN_SCRIPT_URL, {
                         method: 'POST',
@@ -153,20 +294,22 @@
                     const result = await response.json();
                     
                     if (result.success) {
-                        showMessage('Application approved!', 'success');
+                        showMessage('Application approved successfully!', 'success');
+                        closeReviewModal();
                         loadData();
                     } else {
                         showMessage('Error: ' + result.error, 'error');
                     }
                 } catch (error) {
                     showMessage('Error: ' + error.message, 'error');
+                    console.error('Error:', error);
                 }
             }
         }
 
         async function rejectApplication(applicationId) {
-            if (confirm('Deny this application?')) {
-                showMessage('Denying...');
+            if (confirm('Are you sure you want to REJECT this application? This action cannot be undone.')) {
+                showMessage('Rejecting application...');
                 try {
                     const response = await fetch(ADMIN_SCRIPT_URL, {
                         method: 'POST',
@@ -181,13 +324,15 @@
                     const result = await response.json();
                     
                     if (result.success) {
-                        showMessage('Application denied!', 'success');
+                        showMessage('Application rejected successfully!', 'success');
+                        closeReviewModal();
                         loadData();
                     } else {
                         showMessage('Error: ' + result.error, 'error');
                     }
                 } catch (error) {
                     showMessage('Error: ' + error.message, 'error');
+                    console.error('Error:', error);
                 }
             }
         }
