@@ -13,7 +13,6 @@
         .toast { animation: slide-in 0.5s forwards, slide-out 0.5s 2.5s forwards; }
         @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes slide-out { from { transform: translateX(0); } to { transform: translateX(110%); } }
-        .search-box { transition: all 0.3s ease; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -66,31 +65,6 @@
             <span>Admin Dashboard</span>
             <button id="logout-btn" class="text-sm font-medium text-red-500 hover:underline">Logout</button>
         </h1>
-        
-        <!-- Search and Filter Section -->
-        <div id="search-section" class="mb-6 hidden">
-            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div class="relative flex-1 max-w-md">
-                    <input type="text" id="search-input" placeholder="Search..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <select id="batch-filter" class="hidden px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        <option value="">All Batches</option>
-                    </select>
-                    <select id="status-filter" class="hidden px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        <option value="">All Status</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Paid">Paid</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
         <div class="mb-6 border-b border-gray-200">
             <nav class="flex flex-wrap -mb-px" aria-label="Tabs">
                  <button id="tab-approveMembers" class="tab-btn tab-active whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm">Approve Members</button>
@@ -112,6 +86,7 @@
     <!-- Modals (Initially empty, populated by JS) -->
     <div id="form-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50"></div>
     <div id="delete-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50"></div>
+    <div id="payment-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50"></div>
     <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50">
         <p id="toast-message">Success!</p>
     </div>
@@ -123,8 +98,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const VERIFICATION_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyi74qvsmI_XhnxPUEBBNFuOyHJiUi8ptxB8e1WIM5DJcy6BeHNkWBLinGw6AqwdSW-oA/exec';
+    const DATABASE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymZ7kLWVXMxBQ2bA5HKI9wRNvIlc-cTOmTnOXzqoBPHMcKGhoQDocAzE5cXRs3YAiE/exec'; // Replace with your DATABASE script URL
     const ADMIN_EMAIL = 'mbstu.phy.alm@gmail.com';
-    const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
 
     const loginContainer = document.getElementById('login-container');
     const dashboardContainer = document.getElementById('dashboard-container');
@@ -135,18 +110,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const sendCodeBtn = document.getElementById('send-code-btn');
     const loginMessage = document.getElementById('login-message');
     const logoutBtn = document.getElementById('logout-btn');
-    const searchSection = document.getElementById('search-section');
-    const searchInput = document.getElementById('search-input');
-    const batchFilter = document.getElementById('batch-filter');
-    const statusFilter = document.getElementById('status-filter');
 
     let data;
-    let currentTab = 'approveMembers';
     const tabs = document.querySelectorAll('.tab-btn');
     const formModalContainer = document.getElementById('form-modal');
     const deleteModalContainer = document.getElementById('delete-modal');
+    const paymentModalContainer = document.getElementById('payment-modal');
 
-    // --- VERIFICATION LOGIC (PRESERVED) ---
+    // --- VERIFICATION LOGIC ---
     if (emailForm) {
         emailForm.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -189,9 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 codeStep.classList.add('hidden'); emailStep.classList.remove('hidden'); return;
             }
             if (code === storedCode) {
-                sessionStorage.setItem('isAdminAuthenticated', 'true'); 
-                sessionStorage.setItem('adminLoginTime', Date.now().toString());
-                showDashboard();
+                sessionStorage.setItem('isAdminAuthenticated', 'true'); showDashboard();
             } else { loginMessage.textContent = 'Invalid verification code.'; }
         });
     }
@@ -199,134 +168,176 @@ document.addEventListener('DOMContentLoaded', function () {
     if(logoutBtn) {
         logoutBtn.addEventListener('click', function () {
             sessionStorage.removeItem('isAdminAuthenticated');
-            sessionStorage.removeItem('adminLoginTime');
             loginContainer.classList.remove('hidden');
             dashboardContainer.classList.add('hidden');
         });
     }
 
-    function checkSessionTimeout() {
-        const loginTime = sessionStorage.getItem('adminLoginTime');
-        if (loginTime && Date.now() - parseInt(loginTime) > SESSION_TIMEOUT) {
-            sessionStorage.removeItem('isAdminAuthenticated');
-            sessionStorage.removeItem('adminLoginTime');
-            showDashboard(false);
+    function showDashboard() {
+        loginContainer.classList.add('hidden');
+        dashboardContainer.classList.remove('hidden');
+        if (!document.body.classList.contains('admin-initialized')) {
+            initializeAdminPanel();
+            document.body.classList.add('admin-initialized');
         }
     }
 
-    function showDashboard(show = true) {
-        if (show) {
-            loginContainer.classList.add('hidden');
-            dashboardContainer.classList.remove('hidden');
-            if (!document.body.classList.contains('admin-initialized')) {
-                initializeAdminPanel();
-                document.body.classList.add('admin-initialized');
-            }
-        } else {
-            loginContainer.classList.remove('hidden');
-            dashboardContainer.classList.add('hidden');
-        }
-    }
-
-    // Check authentication and session timeout
-    setInterval(checkSessionTimeout, 60000);
     if (sessionStorage.getItem('isAdminAuthenticated') === 'true') {
         showDashboard();
     }
 
-    // --- ENHANCED ADMIN PANEL LOGIC (ALL FUNCTIONALITIES PRESERVED) ---
+    // --- ADMIN PANEL LOGIC ---
     function initializeAdminPanel() {
         
-        // Data Management (PRESERVED)
-        function loadData() {
-            const storedData = localStorage.getItem('alumniData');
-            data = storedData ? JSON.parse(storedData) : { news: [], activities: [], events: [], members: [], pendingMembers: [], committee: [] };
-            ['news', 'activities', 'events', 'members', 'pendingMembers', 'committee'].forEach(key => { if (!data[key]) data[key] = []; });
-        }
-        
-        function saveData() {
+        // Load data from Database Script (Google Sheets)
+        async function loadData() {
             try {
-                localStorage.setItem('alumniData', JSON.stringify(data));
-                window.dispatchEvent(new Event('storage'));
-                return true;
+                console.log('Loading data from Database Script...');
+                
+                // Load existing content from localStorage
+                const storedData = localStorage.getItem('alumniData');
+                const existingData = storedData ? JSON.parse(storedData) : {
+                    news: [], activities: [], events: [], committee: [] 
+                };
+                
+                // Load approved members with payment info from database
+                const approvedMembers = await loadApprovedMembers();
+                
+                // Load pending applications from your database
+                const applications = await loadPendingApplications();
+                
+                data = {
+                    news: existingData.news || [],
+                    activities: existingData.activities || [],
+                    events: existingData.events || [],
+                    members: approvedMembers, // From Google Sheets with payment info
+                    pendingMembers: applications, // From Google Sheets
+                    committee: existingData.committee || []
+                };
+                
+                console.log('Data loaded from database:', {
+                    pending: data.pendingMembers.length,
+                    approved: data.members.length,
+                    news: data.news.length,
+                    activities: data.activities.length,
+                    events: data.events.length
+                });
+                
             } catch (error) {
-                console.error('Error saving data:', error);
-                showToast('Error saving data', 'error');
+                console.error('Error loading data:', error);
+                // Fallback to localStorage only
+                const storedData = localStorage.getItem('alumniData');
+                data = storedData ? JSON.parse(storedData) : { 
+                    news: [], activities: [], events: [], 
+                    members: [], pendingMembers: [], committee: [] 
+                };
+            }
+        }
+
+        // Load approved members from DATABASE script
+        async function loadApprovedMembers() {
+            try {
+                console.log('Fetching approved members from database script...');
+                const response = await fetch(DATABASE_SCRIPT_URL + '?action=getApprovedMembers');
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const result = await response.json();
+                console.log('Approved members response:', result);
+                
+                if (result.success && result.members) {
+                    return result.members;
+                } else {
+                    console.warn('No approved members found:', result);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error loading approved members:', error);
+                return [];
+            }
+        }
+
+        // Load pending applications from DATABASE script
+        async function loadPendingApplications() {
+            try {
+                console.log('Fetching pending applications from database script...');
+                const response = await fetch(DATABASE_SCRIPT_URL + '?action=getPendingApplications');
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const result = await response.json();
+                console.log('Pending applications response:', result);
+                
+                if (result.success && result.applications) {
+                    return result.applications;
+                } else {
+                    console.warn('No pending applications found:', result);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error loading pending applications:', error);
+                return [];
+            }
+        }
+
+        // Update payment status in Google Sheets using DATABASE script
+        async function updatePaymentStatus(paymentData) {
+            try {
+                const response = await fetch(DATABASE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'updatePaymentStatus',
+                        ...paymentData
+                    })
+                });
+                
+                const result = await response.json();
+                return result.success;
+            } catch (error) {
+                console.error('Error updating payment status:', error);
                 return false;
             }
         }
-
-        // Search and Filter functionality (NEW)
-        function setupSearchAndFilter() {
-            const searchableTabs = ['approveMembers', 'manageMembers'];
-            if (searchableTabs.includes(currentTab)) {
-                searchSection.classList.remove('hidden');
-                if (currentTab === 'manageMembers') {
-                    batchFilter.classList.remove('hidden');
-                    statusFilter.classList.remove('hidden');
-                    populateBatchFilter();
-                } else {
-                    batchFilter.classList.add('hidden');
-                    statusFilter.classList.add('hidden');
-                }
-            } else {
-                searchSection.classList.add('hidden');
-            }
+        
+        function saveData() {
+            localStorage.setItem('alumniData', JSON.stringify(data));
+            window.dispatchEvent(new Event('storage'));
         }
 
-        function populateBatchFilter() {
-            const batches = [...new Set(data.members.map(m => m.institutionalInfo?.batch).filter(Boolean))].sort();
-            batchFilter.innerHTML = '<option value="">All Batches</option>' +
-                batches.map(batch => `<option value="${batch}">Batch ${batch}</option>`).join('');
-        }
-
-        function filterItems(items, type) {
-            let filtered = [...items];
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            
-            if (searchTerm) {
-                filtered = filtered.filter(item => 
-                    item.fullName?.toLowerCase().includes(searchTerm) ||
-                    item.email?.toLowerCase().includes(searchTerm) ||
-                    item.title?.toLowerCase().includes(searchTerm)
-                );
-            }
-
-            if (type === 'manageMembers') {
-                const batchValue = batchFilter.value;
-                const statusValue = statusFilter.value;
-                
-                if (batchValue) {
-                    filtered = filtered.filter(item => 
-                        item.institutionalInfo?.batch == batchValue
-                    );
-                }
-                
-                if (statusValue) {
-                    filtered = filtered.filter(item => 
-                        item.membershipInfo?.status === statusValue
-                    );
-                }
-            }
-
-            return filtered;
-        }
-
-        // UI Components (PRESERVED WITH ENHANCEMENTS)
         function getListItemHTML(type, item) {
             let title = item.fullName || item.title; let details = ''; let buttons = '';
             switch (type) {
                 case 'approveMembers': 
-                    details = `<p class="text-sm text-gray-600">Email: ${item.email || 'N/A'}</p>
-                              <p class="text-sm text-gray-500">Applied: ${new Date(item.appliedDate || Date.now()).toLocaleDateString()}</p>`;
+                    details = `<p class="text-sm text-gray-600">Email: ${item.email || 'N/A'}</p>`;
                     buttons = `<button class="approve-btn p-2 rounded-md bg-green-500 hover:bg-green-600 text-white" data-id="${item.id}">Approve</button><button class="deny-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white" data-id="${item.id}">Deny</button>`; 
                     break;
                 case 'manageMembers': 
-                    const status = item.membershipInfo?.status || 'Pending';
-                    const statusColor = status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-                    details = `<p class="text-sm text-gray-600">${item.email || 'N/A'}</p>
-                              <span class="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">${status}</span>`;
-                    buttons = `<button class="edit-btn p-2 rounded-md bg-yellow-400 hover:bg-yellow-500 text-white" data-id="${item.id}" data-type="members">Edit</button><button class="delete-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white" data-id="${item.id}" data-type="members">Delete</button>`; 
+                    const paymentStatus = item.paymentInfo?.paymentStatus || 'Fee Due';
+                    const paymentColor = paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 
+                                        paymentStatus === 'Fee Due' ? 'bg-yellow-100 text-yellow-800' : 
+                                        'bg-red-100 text-red-800';
+                    details = `
+                        <div class="space-y-1">
+                            <p class="text-sm text-gray-600">${item.email || 'N/A'}</p>
+                            <p class="text-sm text-gray-600">${item.phone || 'N/A'}</p>
+                            <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full ${paymentColor}">
+                                ${paymentStatus}
+                            </span>
+                            ${item.paymentInfo?.paymentDate ? `<p class="text-sm text-gray-500">Paid: ${new Date(item.paymentInfo.paymentDate).toLocaleDateString()}</p>` : ''}
+                        </div>
+                    `;
+                    buttons = `
+                        <button class="payment-btn p-2 rounded-md bg-purple-500 hover:bg-purple-600 text-white text-sm" data-id="${item.id}">Payment</button>
+                        <button class="edit-btn p-2 rounded-md bg-yellow-400 hover:bg-yellow-500 text-white text-sm" data-id="${item.id}" data-type="members">Edit</button>
+                        <button class="delete-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm" data-id="${item.id}" data-type="members">Delete</button>
+                    `;
                     break;
                 case 'manageCommittee': 
                     details = `<p class="text-sm text-gray-600">${item.title}</p>`; 
@@ -337,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     buttons = `<button class="edit-btn p-2 rounded-md bg-yellow-400 hover:bg-yellow-500 text-white" data-id="${item.id}" data-type="${type}">Edit</button><button class="delete-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white" data-id="${item.id}" data-type="${type}">Delete</button>`; 
                     break;
             }
-            return `<div class="bg-white shadow-lg rounded-lg p-5 mb-4 flex justify-between items-center transition-all hover:shadow-xl"><div><h4 class="font-bold text-lg">${title}</h4>${details}</div><div class="flex space-x-2">${buttons}</div></div>`;
+            return `<div class="bg-white shadow-lg rounded-lg p-5 mb-4 flex justify-between items-center"><div><h4 class="font-bold text-lg">${title}</h4>${details}</div><div class="flex space-x-2">${buttons}</div></div>`;
         }
 
         function renderContent(type) {
@@ -346,33 +357,17 @@ document.addEventListener('DOMContentLoaded', function () {
             switch(type){
                 case 'approveMembers': items = data.pendingMembers; break;
                 case 'manageMembers': items = data.members; break;
-                case 'manageCommittee': items = data.committee; createButtonHTML = `<button class="create-btn mb-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors" data-type="manageCommittee">+ Add Committee Member</button>`; break;
-                default: items = data[type]; createButtonHTML = `<button class="create-btn mb-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors" data-type="${type}">+ Create New ${typeLabel}</button>`;
+                case 'manageCommittee': items = data.committee; createButtonHTML = `<button class="create-btn mb-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" data-type="manageCommittee">+ Add Committee Member</button>`; break;
+                default: items = data[type]; createButtonHTML = `<button class="create-btn mb-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" data-type="${type}">+ Create New ${typeLabel}</button>`;
             }
-
-            // Apply filters if search is active (NEW)
-            if (['approveMembers', 'manageMembers'].includes(type)) {
-                items = filterItems(items, type);
-            }
-
             let contentHTML = createButtonHTML;
-            if(items && items.length > 0) {
-                contentHTML += items.map(item => getListItemHTML(type, item)).join('');
-                contentHTML += `<div class="mt-4 text-sm text-gray-500 text-center">Showing ${items.length} item(s)</div>`;
-            } else {
-                contentHTML += `<div class="bg-gray-100 p-8 rounded-lg text-center text-gray-500">
-                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    No items found.
-                </div>`;
-            }
+            if(items && items.length > 0) contentHTML += items.map(item => getListItemHTML(type, item)).join('');
+            else contentHTML += `<div class="bg-gray-100 p-6 rounded-lg text-center text-gray-500">No items found.</div>`;
             container.innerHTML = contentHTML;
         }
 
         function renderAllTabs() { ['approveMembers', 'manageMembers', 'manageCommittee', 'news', 'activities', 'events'].forEach(renderContent); }
 
-        // FORM GENERATION (COMPLETELY PRESERVED - NO CHANGES)
         function getFormFieldsHTML(type, item = {}) {
             const inputClass = "mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500";
             if (type === 'members') {
@@ -444,7 +439,75 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // MODAL FUNCTIONS (PRESERVED)
+        // Update payment modal function
+        function openPaymentModal(member) {
+            paymentModalContainer.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">Update Payment Status</h3>
+                        <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                            <p class="font-semibold">${member.fullName}</p>
+                            <p class="text-sm text-gray-600">${member.email} | Batch: ${member.institutionalInfo?.batch || 'N/A'}</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Fee Status</label>
+                                <select id="payment-status" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                                    <option value="Fee Due" ${member.paymentInfo?.paymentStatus === 'Fee Due' ? 'selected' : ''}>Fee Due</option>
+                                    <option value="Paid" ${member.paymentInfo?.paymentStatus === 'Paid' ? 'selected' : ''}>Fee Paid</option>
+                                    <option value="Exempted" ${member.paymentInfo?.paymentStatus === 'Exempted' ? 'selected' : ''}>Fee Exempted</option>
+                                </select>
+                            </div>
+                            
+                            <div id="payment-details" class="${member.paymentInfo?.paymentStatus === 'Paid' ? '' : 'hidden'} space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Transaction ID</label>
+                                    <input type="text" id="transaction-id" value="${member.paymentInfo?.transactionId || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="TXN123456">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Payment Date</label>
+                                    <input type="date" id="payment-date" value="${member.paymentInfo?.paymentDate || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Payment Method</label>
+                                    <select id="payment-method" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                                        <option value="">Select method</option>
+                                        <option value="bKash" ${member.paymentInfo?.paymentMethod === 'bKash' ? 'selected' : ''}>bKash</option>
+                                        <option value="Bank Transfer" ${member.paymentInfo?.paymentMethod === 'Bank Transfer' ? 'selected' : ''}>Bank Transfer</option>
+                                        <option value="Cash" ${member.paymentInfo?.paymentMethod === 'Cash' ? 'selected' : ''}>Cash</option>
+                                        <option value="Nagad" ${member.paymentInfo?.paymentMethod === 'Nagad' ? 'selected' : ''}>Nagad</option>
+                                        <option value="Other" ${member.paymentInfo?.paymentMethod === 'Other' ? 'selected' : ''}>Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Amount (BDT)</label>
+                                    <input type="number" id="amount" value="${member.paymentInfo?.amount || '500'}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Membership Valid Until</label>
+                                    <input type="date" id="validity" value="${member.paymentInfo?.validity || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                                </div>
+                            </div>
+
+                            <div id="exemption-details" class="${member.paymentInfo?.paymentStatus === 'Exempted' ? '' : 'hidden'}">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Exemption Reason</label>
+                                    <textarea id="exemption-reason" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="Reason for fee exemption...">${member.paymentInfo?.notes || ''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
+                            <button type="button" class="modal-cancel px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                            <button class="save-payment-btn px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" data-id="${member.id}">Save Payment Info</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal(paymentModalContainer);
+        }
+
         function openModal(modal) { modal.classList.remove('hidden'); setTimeout(() => modal.classList.add('opacity-100'), 10); }
         function openFormModal(type, id = null) {
              const isEdit = id !== null; let item = {}; let typeLabel = type.replace(/([A-Z])/g, ' $1').trim(); typeLabel = typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1);
@@ -461,159 +524,150 @@ document.addEventListener('DOMContentLoaded', function () {
         function closeModal() {
             formModalContainer.classList.remove('opacity-100');
             deleteModalContainer.classList.remove('opacity-100');
-            setTimeout(() => { formModalContainer.classList.add('hidden'); deleteModalContainer.classList.add('hidden'); }, 300);
+            paymentModalContainer.classList.remove('opacity-100');
+            setTimeout(() => { 
+                formModalContainer.classList.add('hidden'); 
+                deleteModalContainer.classList.add('hidden');
+                paymentModalContainer.classList.add('hidden');
+            }, 300);
         }
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
-            if (type === 'error') {
-                toast.classList.remove('bg-green-500');
-                toast.classList.add('bg-red-500');
-            } else {
-                toast.classList.remove('bg-red-500');
-                toast.classList.add('bg-green-500');
-            }
-            toastMessage.textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
+        function showToast(message) {
+            const toast = document.getElementById('toast'); toast.querySelector('p').textContent = message;
+            toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
-        // Event Listeners for Dashboard (PRESERVED WITH ENHANCEMENTS)
+        // Event Listeners for Dashboard
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 tabs.forEach(t => { t.classList.remove('tab-active'); t.classList.add('text-gray-500', 'border-transparent'); });
                 tab.classList.add('tab-active'); tab.classList.remove('text-gray-500', 'border-transparent');
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                currentTab = tab.id.substring(4);
-                document.getElementById(`content-${currentTab}`).classList.remove('hidden');
-                setupSearchAndFilter();
-                renderContent(currentTab);
+                document.getElementById(`content-${tab.id.substring(4)}`).classList.remove('hidden');
             });
         });
 
-        // Search and filter event listeners (NEW)
-        if (searchInput) {
-            searchInput.addEventListener('input', () => {
-                renderContent(currentTab);
-            });
-        }
-        if (batchFilter) {
-            batchFilter.addEventListener('change', () => {
-                renderContent(currentTab);
-            });
-        }
-        if (statusFilter) {
-            statusFilter.addEventListener('change', () => {
-                renderContent(currentTab);
-            });
-        }
-
-        // Click handler (PRESERVED WITH ERROR HANDLING)
-        document.body.addEventListener('click', e => {
+        document.body.addEventListener('click', async e => {
             if (e.target.classList.contains('modal-cancel')) closeModal();
             if (e.target.closest('#dashboard-container')) {
-                try {
-                    if(e.target.classList.contains('create-btn')) openFormModal(e.target.dataset.type);
-                    if(e.target.classList.contains('edit-btn')) openFormModal(e.target.dataset.type, e.target.dataset.id);
-                    if(e.target.classList.contains('delete-btn')) openDeleteModal(e.target.dataset.type, e.target.dataset.id);
-                    if(e.target.classList.contains('approve-btn')){ const id = e.target.dataset.id; const member = data.pendingMembers.find(m => m.id == id); if(member){ data.members.push(member); data.pendingMembers = data.pendingMembers.filter(m => m.id != id); saveData(); renderAllTabs(); showToast('Member Approved'); } }
-                    if(e.target.classList.contains('deny-btn')){ data.pendingMembers = data.pendingMembers.filter(m => m.id != e.target.dataset.id); saveData(); renderContent('approveMembers'); showToast('Member Denied'); }
-                    if(e.target.classList.contains('remove-committee-btn')){ data.committee = data.committee.filter(c => c.id != e.target.dataset.id); saveData(); renderContent('manageCommittee'); showToast('Committee Member Removed'); }
-                } catch (error) {
-                    console.error('Error handling click event:', error);
-                    showToast('An error occurred', 'error');
+                if(e.target.classList.contains('create-btn')) openFormModal(e.target.dataset.type);
+                if(e.target.classList.contains('edit-btn')) openFormModal(e.target.dataset.type, e.target.dataset.id);
+                if(e.target.classList.contains('delete-btn')) openDeleteModal(e.target.dataset.type, e.target.dataset.id);
+                if(e.target.classList.contains('approve-btn')){ const id = e.target.dataset.id; const member = data.pendingMembers.find(m => m.id == id); if(member){ data.members.push(member); data.pendingMembers = data.pendingMembers.filter(m => m.id != id); saveData(); renderAllTabs(); showToast('Member Approved'); } }
+                if(e.target.classList.contains('deny-btn')){ data.pendingMembers = data.pendingMembers.filter(m => m.id != e.target.dataset.id); saveData(); renderContent('approveMembers'); showToast('Member Denied'); }
+                if(e.target.classList.contains('remove-committee-btn')){ data.committee = data.committee.filter(c => c.id != e.target.dataset.id); saveData(); renderContent('manageCommittee'); showToast('Committee Member Removed'); }
+                if(e.target.classList.contains('payment-btn')){ 
+                    const id = e.target.dataset.id; 
+                    const member = data.members.find(m => m.id == id); 
+                    if(member) openPaymentModal(member); 
                 }
             }
-             if(e.target.id === 'delete-confirm'){
-                try {
-                    const { type, id } = e.target.dataset;
-                    if(type === 'members'){ data.members = data.members.filter(i => i.id != id); data.committee = data.committee.filter(c => c.id != id); }
-                    else { data[type] = data[type].filter(i => i.id != id); }
-                    saveData(); renderAllTabs(); closeModal(); showToast('Item Deleted');
-                } catch (error) {
-                    console.error('Error deleting item:', error);
-                    showToast('Error deleting item', 'error');
+            if(e.target.id === 'delete-confirm'){
+                const { type, id } = e.target.dataset;
+                if(type === 'members'){ data.members = data.members.filter(i => i.id != id); data.committee = data.committee.filter(c => c.id != id); }
+                else { data[type] = data[type].filter(i => i.id != id); }
+                saveData(); renderAllTabs(); closeModal(); showToast('Item Deleted');
+            }
+            if(e.target.classList.contains('save-payment-btn')) {
+                const id = e.target.dataset.id;
+                const member = data.members.find(m => m.id == id);
+                if(member) {
+                    const paymentStatus = document.getElementById('payment-status').value;
+                    const paymentData = {
+                        memberId: member.id,
+                        fullName: member.fullName,
+                        email: member.email,
+                        phone: member.phone,
+                        batch: member.institutionalInfo?.batch || '',
+                        paymentStatus: paymentStatus,
+                        transactionId: document.getElementById('transaction-id').value,
+                        paymentDate: document.getElementById('payment-date').value,
+                        paymentMethod: document.getElementById('payment-method').value,
+                        amount: document.getElementById('amount').value,
+                        validity: document.getElementById('validity').value,
+                        notes: paymentStatus === 'Exempted' ? document.getElementById('exemption-reason').value : ''
+                    };
+                    
+                    // Save to Google Sheets
+                    const updated = await updatePaymentStatus(paymentData);
+                    if (updated) {
+                        // Reload members from database to get updated payment info
+                        await loadData();
+                        renderContent('manageMembers');
+                        closeModal();
+                        showToast('Payment information saved to database');
+                    } else {
+                        showToast('Error saving payment information', 'error');
+                    }
                 }
             }
         });
 
-        // Form submission (PRESERVED WITH VALIDATION)
+        // Update payment status change handler
+        paymentModalContainer.addEventListener('change', (e) => {
+            if (e.target.id === 'payment-status') {
+                const paymentDetails = document.getElementById('payment-details');
+                const exemptionDetails = document.getElementById('exemption-details');
+                
+                if (paymentDetails && exemptionDetails) {
+                    if (e.target.value === 'Paid') {
+                        paymentDetails.classList.remove('hidden');
+                        exemptionDetails.classList.add('hidden');
+                    } else if (e.target.value === 'Exempted') {
+                        paymentDetails.classList.add('hidden');
+                        exemptionDetails.classList.remove('hidden');
+                    } else {
+                        paymentDetails.classList.add('hidden');
+                        exemptionDetails.classList.add('hidden');
+                    }
+                }
+            }
+        });
+
         formModalContainer.addEventListener('submit', e => {
             e.preventDefault(); if (e.target.id !== 'modal-form') return;
             const form = e.target; const { type, id } = form.dataset; const isEdit = id !== '';
-            
-            // Basic validation
-            const requiredFields = form.querySelectorAll('[required]');
-            let isValid = true;
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.classList.add('border-red-500');
-                } else {
-                    field.classList.remove('border-red-500');
-                }
-            });
-            
-            if (!isValid) {
-                showToast('Please fill in all required fields', 'error');
-                return;
-            }
-
-            try {
-                if (type === 'members' && isEdit) {
-                    const memberIndex = data.members.findIndex(m => m.id == id);
-                    if (memberIndex > -1) {
-                        const member = data.members[memberIndex];
-                        if (!member.membershipInfo) member.membershipInfo = {};
-                        if (!member.institutionalInfo) member.institutionalInfo = {};
-                        if (!member.professionalInfo) member.professionalInfo = {};
-                        if (!member.mailingAddress) member.mailingAddress = {};
-                        member.fullName = form.querySelector('#fullName').value; member.dob = form.querySelector('#dob').value;
-                        member.fatherName = form.querySelector('#fatherName').value; member.motherName = form.querySelector('#motherName').value;
-                        member.gender = form.querySelector('#gender').value; member.bloodGroup = form.querySelector('#bloodGroup').value;
-                        member.email = form.querySelector('#email').value; member.phone = `${form.querySelector('#countryCode').value}${form.querySelector('#phone').value}`;
-                        member.membershipInfo.status = form.querySelector('#membershipStatus').value;
-                        if(member.membershipInfo.status === 'Paid') {
-                            member.membershipInfo.transactionId = form.querySelector('#transactionId').value; member.membershipInfo.paymentDate = form.querySelector('#paymentDate').value;
-                            member.membershipInfo.paymentMethod = form.querySelector('#paymentMethod').value; member.membershipInfo.validity = form.querySelector('#validity').value;
-                        } else { delete member.membershipInfo.transactionId; delete member.membershipInfo.paymentDate; delete member.membershipInfo.paymentMethod; delete member.membershipInfo.validity; }
-                        Object.assign(member.institutionalInfo, { season: form.querySelector('#season').value, batch: form.querySelector('#batch').value, studentId: form.querySelector('#studentId').value, passingYear: form.querySelector('#passingYear').value, degree: form.querySelector('#degree').value, supervisor: form.querySelector('#supervisor').value });
-                        Object.assign(member.professionalInfo, { sector: form.querySelector('#sector').value, role: form.querySelector('#role').value, company: form.querySelector('#company').value, workCity: form.querySelector('#workCity').value, workCountry: form.querySelector('#workCountry').value, lastDegree: form.querySelector('#lastDegree').value, university: form.querySelector('#university').value, linkedin: form.querySelector('#linkedin').value });
-                        Object.assign(member.mailingAddress, { division: form.querySelector('#division').value, district: form.querySelector('#district').value, subDistrict: form.querySelector('#subDistrict').value, city: form.querySelector('#city').value, unionWard: form.querySelector('#unionWard').value, houseNumber: form.querySelector('#houseNumber').value, street: form.querySelector('#street').value, postalCode: form.querySelector('#postalCode').value });
-                    }
-                } else if (type === 'manageCommittee') {
-                    const memberId = form.querySelector('#memberId').value; const member = data.members.find(m => m.id == memberId);
-                    if(member) { const newCommitteeMember = JSON.parse(JSON.stringify(member)); newCommitteeMember.title = form.querySelector('#title').value; data.committee.push(newCommitteeMember); }
-                } else {
-                    let updatedItem = isEdit ? data[type].find(i => i.id == id) : { id: Date.now() };
-                    updatedItem.title = form.querySelector('#title').value; updatedItem.imageUrl = form.querySelector('#imageUrl').value;
-                    if(type === 'news') updatedItem.content = form.querySelector('#content').value;
-                    else { updatedItem.description = form.querySelector('#description').value; updatedItem.date = form.querySelector('#date').value; updatedItem.location = form.querySelector('#location').value; }
-                    if(!isEdit) data[type].push(updatedItem);
-                }
-                saveData(); renderAllTabs(); closeModal(); showToast(`Item ${isEdit ? 'updated' : 'created'}`);
-            } catch (error) {
-                console.error('Error submitting form:', error);
-                showToast('Error saving item', 'error');
-            }
-        });
-        
-        // Payment status toggle (PRESERVED)
-        formModalContainer.addEventListener('change', e => {
-            if (e.target.id === 'membershipStatus') {
-                const paymentDetails = document.getElementById('payment-details');
-                if (paymentDetails) {
-                    if (e.target.value === 'Paid') {
-                        paymentDetails.classList.remove('hidden');
+            if (type === 'members' && isEdit) {
+                const memberIndex = data.members.findIndex(m => m.id == id);
+                if (memberIndex > -1) {
+                    const member = data.members[memberIndex];
+                    if (!member.membershipInfo) member.membershipInfo = {};
+                    if (!member.institutionalInfo) member.institutionalInfo = {};
+                    if (!member.professionalInfo) member.professionalInfo = {};
+                    if (!member.mailingAddress) member.mailingAddress = {};
+                    member.fullName = form.querySelector('#fullName').value; member.dob = form.querySelector('#dob').value;
+                    member.fatherName = form.querySelector('#fatherName').value; member.motherName = form.querySelector('#motherName').value;
+                    member.gender = form.querySelector('#gender').value; member.bloodGroup = form.querySelector('#bloodGroup').value;
+                    member.email = form.querySelector('#email').value; member.phone = `${form.querySelector('#countryCode').value}${form.querySelector('#phone').value}`;
+                    member.membershipInfo.status = form.querySelector('#membershipStatus').value;
+                    if(member.membershipInfo.status === 'Paid') {
+                        member.membershipInfo.transactionId = form.querySelector('#transactionId').value || '';
+                        member.membershipInfo.paymentDate = form.querySelector('#paymentDate').value || '';
+                        member.membershipInfo.paymentMethod = form.querySelector('#paymentMethod').value || '';
+                        member.membershipInfo.validity = form.querySelector('#validity').value || '';
                     } else {
-                        paymentDetails.classList.add('hidden');
+                        member.membershipInfo.transactionId = '';
+                        member.membershipInfo.paymentDate = '';
+                        member.membershipInfo.paymentMethod = '';
+                        member.membershipInfo.validity = '';
                     }
+                    Object.assign(member.institutionalInfo, { season: form.querySelector('#season').value, batch: form.querySelector('#batch').value, studentId: form.querySelector('#studentId').value, passingYear: form.querySelector('#passingYear').value, degree: form.querySelector('#degree').value, supervisor: form.querySelector('#supervisor').value });
+                    Object.assign(member.professionalInfo, { sector: form.querySelector('#sector').value, role: form.querySelector('#role').value, company: form.querySelector('#company').value, workCity: form.querySelector('#workCity').value, workCountry: form.querySelector('#workCountry').value, lastDegree: form.querySelector('#lastDegree').value, university: form.querySelector('#university').value, linkedin: form.querySelector('#linkedin').value });
+                    Object.assign(member.mailingAddress, { division: form.querySelector('#division').value, district: form.querySelector('#district').value, subDistrict: form.querySelector('#subDistrict').value, city: form.querySelector('#city').value, unionWard: form.querySelector('#unionWard').value, houseNumber: form.querySelector('#houseNumber').value, street: form.querySelector('#street').value, postalCode: form.querySelector('#postalCode').value });
                 }
+            } else if (type === 'manageCommittee') {
+                const memberId = form.querySelector('#memberId').value; const member = data.members.find(m => m.id == memberId);
+                if(member) { const newCommitteeMember = JSON.parse(JSON.stringify(member)); newCommitteeMember.title = form.querySelector('#title').value; data.committee.push(newCommitteeMember); }
+            } else {
+                let updatedItem = isEdit ? data[type].find(i => i.id == id) : { id: Date.now() };
+                updatedItem.title = form.querySelector('#title').value; updatedItem.imageUrl = form.querySelector('#imageUrl').value;
+                if(type === 'news') updatedItem.content = form.querySelector('#content').value;
+                else { updatedItem.description = form.querySelector('#description').value; updatedItem.date = form.querySelector('#date').value; updatedItem.location = form.querySelector('#location').value; }
+                if(!isEdit) data[type].push(updatedItem);
             }
+            saveData(); renderAllTabs(); closeModal(); showToast(`Item ${isEdit ? 'updated' : 'created'}`);
         });
         
         loadData();
-        setupSearchAndFilter();
         renderAllTabs();
     }
 });
