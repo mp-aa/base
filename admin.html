@@ -98,7 +98,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const VERIFICATION_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyi74qvsmI_XhnxPUEBBNFuOyHJiUi8ptxB8e1WIM5DJcy6BeHNkWBLinGw6AqwdSW-oA/exec';
-    const DATABASE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymZ7kLWVXMxBQ2bA5HKI9wRNvIlc-cTOmTnOXzqoBPHMcKGhoQDocAzE5cXRs3YAiE/exec'; // Replace with your DATABASE script URL
+    const DATABASE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5_9lxbBj5DdQ7T1b8h2XgQYQn8h3J2q3Q2Z8Z5e4e3k5V4e/exec'; // Replace with your DATABASE script URL
     const ADMIN_EMAIL = 'mbstu.phy.alm@gmail.com';
 
     const loginContainer = document.getElementById('login-container');
@@ -189,99 +189,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- ADMIN PANEL LOGIC ---
     function initializeAdminPanel() {
         
-        // Load data from Database Script (Google Sheets)
-        async function loadData() {
-            try {
-                console.log('Loading data from Database Script...');
-                
-                // Load existing content from localStorage
-                const storedData = localStorage.getItem('alumniData');
-                const existingData = storedData ? JSON.parse(storedData) : {
-                    news: [], activities: [], events: [], committee: [] 
-                };
-                
-                // Load approved members with payment info from database
-                const approvedMembers = await loadApprovedMembers();
-                
-                // Load pending applications from your database
-                const applications = await loadPendingApplications();
-                
-                data = {
-                    news: existingData.news || [],
-                    activities: existingData.activities || [],
-                    events: existingData.events || [],
-                    members: approvedMembers, // From Google Sheets with payment info
-                    pendingMembers: applications, // From Google Sheets
-                    committee: existingData.committee || []
-                };
-                
-                console.log('Data loaded from database:', {
-                    pending: data.pendingMembers.length,
-                    approved: data.members.length,
-                    news: data.news.length,
-                    activities: data.activities.length,
-                    events: data.events.length
-                });
-                
-            } catch (error) {
-                console.error('Error loading data:', error);
-                // Fallback to localStorage only
-                const storedData = localStorage.getItem('alumniData');
-                data = storedData ? JSON.parse(storedData) : { 
-                    news: [], activities: [], events: [], 
-                    members: [], pendingMembers: [], committee: [] 
-                };
-            }
+        // KEEP ORIGINAL LOAD DATA FUNCTION - Don't break existing functionality
+        function loadData() {
+            const storedData = localStorage.getItem('alumniData');
+            data = storedData ? JSON.parse(storedData) : { news: [], activities: [], events: [], members: [], pendingMembers: [], committee: [] };
+            ['news', 'activities', 'events', 'members', 'pendingMembers', 'committee'].forEach(key => { if (!data[key]) data[key] = []; });
         }
-
-        // Load approved members from DATABASE script
-        async function loadApprovedMembers() {
-            try {
-                console.log('Fetching approved members from database script...');
-                const response = await fetch(DATABASE_SCRIPT_URL + '?action=getApprovedMembers');
-                
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                
-                const result = await response.json();
-                console.log('Approved members response:', result);
-                
-                if (result.success && result.members) {
-                    return result.members;
-                } else {
-                    console.warn('No approved members found:', result);
-                    return [];
-                }
-            } catch (error) {
-                console.error('Error loading approved members:', error);
-                return [];
-            }
-        }
-
-        // Load pending applications from DATABASE script
-        async function loadPendingApplications() {
-            try {
-                console.log('Fetching pending applications from database script...');
-                const response = await fetch(DATABASE_SCRIPT_URL + '?action=getPendingApplications');
-                
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                
-                const result = await response.json();
-                console.log('Pending applications response:', result);
-                
-                if (result.success && result.applications) {
-                    return result.applications;
-                } else {
-                    console.warn('No pending applications found:', result);
-                    return [];
-                }
-            } catch (error) {
-                console.error('Error loading pending applications:', error);
-                return [];
-            }
+        
+        function saveData() {
+            localStorage.setItem('alumniData', JSON.stringify(data));
+            window.dispatchEvent(new Event('storage'));
         }
 
         // Update payment status in Google Sheets using DATABASE script
@@ -305,11 +222,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return false;
             }
         }
-        
-        function saveData() {
-            localStorage.setItem('alumniData', JSON.stringify(data));
-            window.dispatchEvent(new Event('storage'));
-        }
 
         function getListItemHTML(type, item) {
             let title = item.fullName || item.title; let details = ''; let buttons = '';
@@ -319,10 +231,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     buttons = `<button class="approve-btn p-2 rounded-md bg-green-500 hover:bg-green-600 text-white" data-id="${item.id}">Approve</button><button class="deny-btn p-2 rounded-md bg-red-500 hover:bg-red-600 text-white" data-id="${item.id}">Deny</button>`; 
                     break;
                 case 'manageMembers': 
-                    const paymentStatus = item.paymentInfo?.paymentStatus || 'Fee Due';
-                    const paymentColor = paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 
-                                        paymentStatus === 'Fee Due' ? 'bg-yellow-100 text-yellow-800' : 
-                                        'bg-red-100 text-red-800';
+                    // Enhanced payment status display
+                    const paymentStatus = item.membershipInfo?.status === 'Paid' ? 'Paid' : 'Fee Due';
+                    const paymentColor = paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                    const paymentDate = item.membershipInfo?.paymentDate;
+                    
                     details = `
                         <div class="space-y-1">
                             <p class="text-sm text-gray-600">${item.email || 'N/A'}</p>
@@ -330,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full ${paymentColor}">
                                 ${paymentStatus}
                             </span>
-                            ${item.paymentInfo?.paymentDate ? `<p class="text-sm text-gray-500">Paid: ${new Date(item.paymentInfo.paymentDate).toLocaleDateString()}</p>` : ''}
+                            ${paymentDate ? `<p class="text-sm text-gray-500">Paid: ${new Date(paymentDate).toLocaleDateString()}</p>` : ''}
                         </div>
                     `;
                     buttons = `
@@ -439,8 +352,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Update payment modal function
+        // Payment modal function
         function openPaymentModal(member) {
+            const currentPaymentStatus = member.membershipInfo?.status === 'Paid' ? 'Paid' : 'Fee Due';
+            
             paymentModalContainer.innerHTML = `
                 <div class="bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all">
                     <div class="p-6">
@@ -454,46 +369,38 @@ document.addEventListener('DOMContentLoaded', function () {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Fee Status</label>
                                 <select id="payment-status" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                    <option value="Fee Due" ${member.paymentInfo?.paymentStatus === 'Fee Due' ? 'selected' : ''}>Fee Due</option>
-                                    <option value="Paid" ${member.paymentInfo?.paymentStatus === 'Paid' ? 'selected' : ''}>Fee Paid</option>
-                                    <option value="Exempted" ${member.paymentInfo?.paymentStatus === 'Exempted' ? 'selected' : ''}>Fee Exempted</option>
+                                    <option value="Fee Due" ${currentPaymentStatus === 'Fee Due' ? 'selected' : ''}>Fee Due</option>
+                                    <option value="Paid" ${currentPaymentStatus === 'Paid' ? 'selected' : ''}>Fee Paid</option>
                                 </select>
                             </div>
                             
-                            <div id="payment-details" class="${member.paymentInfo?.paymentStatus === 'Paid' ? '' : 'hidden'} space-y-4">
+                            <div id="payment-details" class="${currentPaymentStatus === 'Paid' ? '' : 'hidden'} space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Transaction ID</label>
-                                    <input type="text" id="transaction-id" value="${member.paymentInfo?.transactionId || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="TXN123456">
+                                    <input type="text" id="transaction-id" value="${member.membershipInfo?.transactionId || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="TXN123456">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Payment Date</label>
-                                    <input type="date" id="payment-date" value="${member.paymentInfo?.paymentDate || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                                    <input type="date" id="payment-date" value="${member.membershipInfo?.paymentDate || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Payment Method</label>
                                     <select id="payment-method" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
                                         <option value="">Select method</option>
-                                        <option value="bKash" ${member.paymentInfo?.paymentMethod === 'bKash' ? 'selected' : ''}>bKash</option>
-                                        <option value="Bank Transfer" ${member.paymentInfo?.paymentMethod === 'Bank Transfer' ? 'selected' : ''}>Bank Transfer</option>
-                                        <option value="Cash" ${member.paymentInfo?.paymentMethod === 'Cash' ? 'selected' : ''}>Cash</option>
-                                        <option value="Nagad" ${member.paymentInfo?.paymentMethod === 'Nagad' ? 'selected' : ''}>Nagad</option>
-                                        <option value="Other" ${member.paymentInfo?.paymentMethod === 'Other' ? 'selected' : ''}>Other</option>
+                                        <option value="bKash" ${member.membershipInfo?.paymentMethod === 'bKash' ? 'selected' : ''}>bKash</option>
+                                        <option value="Bank Transfer" ${member.membershipInfo?.paymentMethod === 'Bank Transfer' ? 'selected' : ''}>Bank Transfer</option>
+                                        <option value="Cash" ${member.membershipInfo?.paymentMethod === 'Cash' ? 'selected' : ''}>Cash</option>
+                                        <option value="Nagad" ${member.membershipInfo?.paymentMethod === 'Nagad' ? 'selected' : ''}>Nagad</option>
+                                        <option value="Other" ${member.membershipInfo?.paymentMethod === 'Other' ? 'selected' : ''}>Other</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Amount (BDT)</label>
-                                    <input type="number" id="amount" value="${member.paymentInfo?.amount || '500'}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                                    <input type="number" id="amount" value="${member.membershipInfo?.amount || '500'}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Membership Valid Until</label>
-                                    <input type="date" id="validity" value="${member.paymentInfo?.validity || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                </div>
-                            </div>
-
-                            <div id="exemption-details" class="${member.paymentInfo?.paymentStatus === 'Exempted' ? '' : 'hidden'}">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Exemption Reason</label>
-                                    <textarea id="exemption-reason" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="Reason for fee exemption...">${member.paymentInfo?.notes || ''}</textarea>
+                                    <input type="date" id="validity" value="${member.membershipInfo?.validity || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
                                 </div>
                             </div>
                         </div>
@@ -583,20 +490,36 @@ document.addEventListener('DOMContentLoaded', function () {
                         paymentDate: document.getElementById('payment-date').value,
                         paymentMethod: document.getElementById('payment-method').value,
                         amount: document.getElementById('amount').value,
-                        validity: document.getElementById('validity').value,
-                        notes: paymentStatus === 'Exempted' ? document.getElementById('exemption-reason').value : ''
+                        validity: document.getElementById('validity').value
                     };
+                    
+                    // Update local data first
+                    if (!member.membershipInfo) member.membershipInfo = {};
+                    member.membershipInfo.status = paymentStatus === 'Paid' ? 'Paid' : 'Pending';
+                    
+                    if(paymentStatus === 'Paid') {
+                        member.membershipInfo.transactionId = paymentData.transactionId;
+                        member.membershipInfo.paymentDate = paymentData.paymentDate;
+                        member.membershipInfo.paymentMethod = paymentData.paymentMethod;
+                        member.membershipInfo.amount = paymentData.amount;
+                        member.membershipInfo.validity = paymentData.validity;
+                    } else {
+                        member.membershipInfo.transactionId = '';
+                        member.membershipInfo.paymentDate = '';
+                        member.membershipInfo.paymentMethod = '';
+                        member.membershipInfo.amount = '';
+                        member.membershipInfo.validity = '';
+                    }
                     
                     // Save to Google Sheets
                     const updated = await updatePaymentStatus(paymentData);
                     if (updated) {
-                        // Reload members from database to get updated payment info
-                        await loadData();
+                        saveData(); // Save to localStorage
                         renderContent('manageMembers');
                         closeModal();
                         showToast('Payment information saved to database');
                     } else {
-                        showToast('Error saving payment information', 'error');
+                        showToast('Error saving payment information');
                     }
                 }
             }
@@ -606,18 +529,11 @@ document.addEventListener('DOMContentLoaded', function () {
         paymentModalContainer.addEventListener('change', (e) => {
             if (e.target.id === 'payment-status') {
                 const paymentDetails = document.getElementById('payment-details');
-                const exemptionDetails = document.getElementById('exemption-details');
-                
-                if (paymentDetails && exemptionDetails) {
+                if (paymentDetails) {
                     if (e.target.value === 'Paid') {
                         paymentDetails.classList.remove('hidden');
-                        exemptionDetails.classList.add('hidden');
-                    } else if (e.target.value === 'Exempted') {
-                        paymentDetails.classList.add('hidden');
-                        exemptionDetails.classList.remove('hidden');
                     } else {
                         paymentDetails.classList.add('hidden');
-                        exemptionDetails.classList.add('hidden');
                     }
                 }
             }
