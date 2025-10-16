@@ -35,21 +35,25 @@
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZ0taSErb47-1OQf5v492bigRDW-usFk10QkXPjm18Ia-DoKE-NVRW-6FYyBIJGneM/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFj1RSsyjYkFUCAkDVWjfAqSOWKaR3ocaf9O-0lT2tX7BsH4y5liJ5szCPxEdANb8Y/exec';
 
-        // JSONP method to bypass CORS
+        // Load data using JSONP to avoid CORS
         function loadData() {
             document.getElementById('status').textContent = ' Loading...';
             
+            // Remove any existing script
+            const oldScript = document.getElementById('jsonp-script');
+            if (oldScript) oldScript.remove();
+            
+            // Create new script with callback
             const script = document.createElement('script');
+            script.id = 'jsonp-script';
             script.src = SCRIPT_URL + '?callback=handleData';
             document.head.appendChild(script);
         }
 
-        // Callback function for JSONP
+        // Handle the JSONP response
         function handleData(data) {
-            document.getElementById('status').textContent = ' ✓ Loaded';
-            
             if (data.error) {
                 document.getElementById('status').textContent = ' ❌ Error: ' + data.error;
                 return;
@@ -57,6 +61,7 @@
             
             displayPending(data.pending);
             displayApproved(data.approved);
+            document.getElementById('status').textContent = ' ✓ Loaded';
         }
 
         function displayPending(applications) {
@@ -98,36 +103,43 @@
             `).join('');
         }
 
-        async function updateStatus(row, status) {
+        // Simple POST using Google Forms workaround
+        function updateStatus(row, status) {
             if (!confirm(`Are you sure you want to ${status} this application?`)) return;
             
-            try {
-                // For POST requests, we need to use a proxy or different approach
-                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-                const response = await fetch(proxyUrl + SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({ 
-                        row: row, 
-                        status: status 
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Status updated successfully!');
-                    loadData();
-                } else {
-                    alert('Error: ' + result.error);
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-                console.error('Update error:', error);
-            }
+            // Create a hidden form to submit the data
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = SCRIPT_URL;
+            form.target = 'hiddenFrame';
+            
+            const rowInput = document.createElement('input');
+            rowInput.name = 'row';
+            rowInput.value = row;
+            
+            const statusInput = document.createElement('input');
+            statusInput.name = 'status';
+            statusInput.value = status;
+            
+            form.appendChild(rowInput);
+            form.appendChild(statusInput);
+            document.body.appendChild(form);
+            
+            // Create hidden iframe to handle response
+            const iframe = document.createElement('iframe');
+            iframe.name = 'hiddenFrame';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+            
+            form.submit();
+            
+            // Clean up and show success message
+            setTimeout(() => {
+                document.body.removeChild(form);
+                document.body.removeChild(iframe);
+                alert('Status updated successfully!');
+                loadData(); // Refresh data
+            }, 1000);
         }
 
         // Load data when page opens
